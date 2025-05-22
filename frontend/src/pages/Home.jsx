@@ -231,51 +231,42 @@ const Home = () => {
             {/* Mobile video carousel - shows 1 video at a time */}
             {isMobile && (
               <div 
-                className="mobile-videos"
                 style={{
                   display: 'flex',
-                  width: '100%',
+                  width: `calc(100% * ${displayVideos.length})`, // Width adjusted to show 1 video at a time
                   height: '100%',
-                  overflow: 'hidden',
+                  animation: `scrollVideos ${animationDuration}s linear infinite`,
                   opacity: showPlaceholder ? 0 : 1,
-                  transition: 'opacity 0.5s ease-in-out',
+                  transition: 'opacity 0.5s ease-in-out'
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    width: `${allVideos.length * 100}%`, // All videos in a row
-                    height: '100%',
-                    animation: `scrollVideosMobile ${mobileDuration}s linear infinite`,
-                    willChange: 'transform',
-                  }}
-                >
-                  {allVideos.map((videoSrc, index) => (
-                    <div 
-                      key={`mobile-video-${index}`}
-                      style={{ 
-                        width: `${100 / allVideos.length}%`, // Each video takes full width
+                {/* Map all videos into the row */}
+                {displayVideos.map((videoSrc, index) => (
+                  <div 
+                    key={`video-mobile-${index}`}
+                    style={{ 
+                      flex: `0 0 calc(100% / ${displayVideos.length})`, // Each video takes equal portion
+                      height: '100%',
+                      position: 'relative',
+                    }}
+                  >
+                    <video 
+                      className="video-element"
+                      style={{
+                        width: '100%',
                         height: '100%',
+                        objectFit: 'cover'
                       }}
+                      autoPlay 
+                      loop 
+                      muted 
+                      playsInline
+                      preload="auto"
                     >
-                      <video 
-                        className="video-element"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                        autoPlay 
-                        loop 
-                        muted 
-                        playsInline
-                        preload="auto"
-                      >
-                        <source src={videoSrc} type="video/mp4" />
-                      </video>
-                    </div>
-                  ))}
-                </div>
+                      <source src={videoSrc} type="video/mp4" />
+                    </video>
+                  </div>
+                ))}
               </div>
             )}
           </div>
