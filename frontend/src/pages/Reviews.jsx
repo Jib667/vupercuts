@@ -18,6 +18,8 @@ const Reviews = () => {
   })
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [isMobile, setIsMobile] = useState(false)
+  const [activeTab, setActiveTab] = useState('reviews') // 'reviews' or 'form'
   
   // Admin state
   const [adminUsername, setAdminUsername] = useState('')
@@ -30,9 +32,30 @@ const Reviews = () => {
   const [averageRating, setAverageRating] = useState(0)
   const [totalReviews, setTotalReviews] = useState(0)
 
+  // Check if device is mobile
+  useEffect(() => {
+    const checkIfMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileDevice = /iphone|ipod|ipad|android|blackberry|windows phone/g.test(userAgent);
+      setIsMobile(isMobileDevice || window.innerWidth <= 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+  
   useEffect(() => {
     fetchReviews()
   }, [])
+
+  // Set default active tab based on device
+  useEffect(() => {
+    setActiveTab(isMobile ? 'reviews' : 'both');
+  }, [isMobile]);
 
   const fetchReviews = async () => {
     setLoading(true)
@@ -90,6 +113,11 @@ const Reviews = () => {
         text: '',
         rating: 5
       })
+      
+      // Switch to reviews tab on mobile after submitting
+      if (isMobile) {
+        setActiveTab('reviews');
+      }
     } catch (err) {
       console.error('Error submitting review:', err)
       setError('Failed to submit review. Please try again.')
@@ -290,12 +318,45 @@ const Reviews = () => {
     );
   };
 
+  // Additional CSS styles for mobile
+  const mobileStyles = `
+    @media (max-width: 768px) {
+      .reviews-container {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+      }
+      
+      .reviews-form, .reviews-list-container {
+        position: static !important;
+        width: 100% !important;
+      }
+      
+      .mobile-tabs {
+        display: flex !important;
+      }
+      
+      .mobile-hidden {
+        display: none !important;
+      }
+      
+      .mobile-visible {
+        display: block !important;
+      }
+      
+      .reviews-list {
+        max-height: 500px !important;
+      }
+    }
+  `;
+
   return (
     <div style={{ 
       position: 'relative', 
       zIndex: 1,
       background: 'linear-gradient(180deg, rgba(26, 10, 42, 0.05) 0%, rgba(255, 255, 255, 0) 100%)',
     }}>
+      <style>{mobileStyles}</style>
+      
       {/* Decorative elements */}
       <div style={{
         position: 'absolute',
@@ -319,7 +380,7 @@ const Reviews = () => {
       }}></div>
       
       <div className="container" style={{ 
-        padding: '5rem 2rem 6rem',
+        padding: isMobile ? '3rem 1rem 4rem' : '5rem 2rem 6rem',
         marginTop: '60px', // Add margin to push content below navbar
         position: 'relative',
       }}>
@@ -394,7 +455,7 @@ const Reviews = () => {
             color: 'var(--accent)',
             padding: '1.2rem',
             borderRadius: 'var(--border-radius)',
-            marginBottom: '3rem',
+            marginBottom: '2rem',
             textAlign: 'center',
             border: '1px solid rgba(106, 44, 176, 0.2)',
             boxShadow: '0 4px 12px rgba(106, 44, 176, 0.1)',
@@ -411,32 +472,87 @@ const Reviews = () => {
             color: '#721c24',
             padding: '1.2rem',
             borderRadius: 'var(--border-radius)',
-            marginBottom: '3rem',
+            marginBottom: '2rem',
             textAlign: 'center',
           }}>
             {error}
           </div>
         )}
         
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 2fr',
-          gap: '4rem',
-          maxWidth: '1200px',
-          margin: '0 auto',
-        }}>
-          {/* Leave a Review Form */}
-          <div style={{
+        {/* Mobile Tabs */}
+        {isMobile && (
+          <div className="mobile-tabs" style={{
+            display: 'none', // Initially hidden, shown via CSS for mobile
+            borderRadius: '12px',
             background: 'white',
-            borderRadius: '16px',
-            boxShadow: 'var(--box-shadow)',
-            padding: '2.5rem',
-            height: 'fit-content',
-            position: 'sticky',
-            top: '100px',
-            border: '1px solid rgba(106, 44, 176, 0.1)',
-            backgroundImage: 'radial-gradient(circle at top right, rgba(106, 44, 176, 0.05), transparent 400px)',
+            padding: '0.5rem',
+            marginBottom: '1.5rem',
+            boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
           }}>
+            <button
+              onClick={() => setActiveTab('reviews')}
+              style={{
+                flex: 1,
+                padding: '0.8rem',
+                background: activeTab === 'reviews' ? 'var(--accent)' : 'transparent',
+                color: activeTab === 'reviews' ? 'white' : 'var(--primary)',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+              }}
+            >
+              <i className="fas fa-comment-alt" style={{ marginRight: '8px' }}></i>
+              Reviews ({totalReviews})
+            </button>
+            <button
+              onClick={() => setActiveTab('form')}
+              style={{
+                flex: 1,
+                padding: '0.8rem',
+                background: activeTab === 'form' ? 'var(--accent)' : 'transparent',
+                color: activeTab === 'form' ? 'white' : 'var(--primary)',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+              }}
+            >
+              <i className="fas fa-pen" style={{ marginRight: '8px' }}></i>
+              Write Review
+            </button>
+          </div>
+        )}
+        
+        <div 
+          className="reviews-container"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 2fr',
+            gap: '4rem',
+            maxWidth: '1200px',
+            margin: '0 auto',
+          }}
+        >
+          {/* Leave a Review Form */}
+          <div 
+            className={`reviews-form ${isMobile && activeTab !== 'form' ? 'mobile-hidden' : ''}`}
+            style={{
+              background: 'white',
+              borderRadius: '16px',
+              boxShadow: 'var(--box-shadow)',
+              padding: '2.5rem',
+              height: 'fit-content',
+              position: 'sticky',
+              top: '100px',
+              border: '1px solid rgba(106, 44, 176, 0.1)',
+              backgroundImage: 'radial-gradient(circle at top right, rgba(106, 44, 176, 0.05), transparent 400px)',
+            }}
+          >
             <h2 style={{ 
               marginBottom: '2rem', 
               color: 'var(--primary)', 
@@ -455,6 +571,31 @@ const Reviews = () => {
                 borderRadius: '3px',
               }}></span>
             </h2>
+            
+            {/* Mobile - Back button */}
+            {isMobile && (
+              <button
+                onClick={() => setActiveTab('reviews')}
+                style={{
+                  position: 'absolute',
+                  top: '1.5rem',
+                  right: '1.5rem',
+                  background: 'rgba(106, 44, 176, 0.1)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent)',
+                  cursor: 'pointer',
+                }}
+              >
+                <i className="fas fa-arrow-left"></i>
+              </button>
+            )}
+            
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="name" className="form-label">Your Name</label>
@@ -583,11 +724,13 @@ const Reviews = () => {
           </div>
           
           {/* Reviews List */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            maxHeight: '650px',
-          }}>
+          <div 
+            className={`reviews-list-container ${isMobile && activeTab !== 'reviews' ? 'mobile-hidden' : ''}`}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -595,18 +738,23 @@ const Reviews = () => {
               justifyContent: 'space-between',
               position: 'relative',
               paddingBottom: '15px',
+              flexWrap: isMobile ? 'wrap' : 'nowrap',
+              gap: isMobile ? '1rem' : '0',
             }}>
               <h2 style={{ 
                 color: 'var(--primary)', 
                 fontSize: '1.8rem', 
                 margin: 0,
                 position: 'relative',
+                flex: isMobile ? '1 0 100%' : 'auto',
+                textAlign: isMobile ? 'center' : 'left',
               }}>
                 What Our Customers Say
                 <span style={{
                   position: 'absolute',
                   bottom: -10,
-                  left: 0,
+                  left: isMobile ? '50%' : 0,
+                  transform: isMobile ? 'translateX(-50%)' : 'none',
                   width: '70px',
                   height: '3px',
                   background: 'var(--accent)',
@@ -614,8 +762,36 @@ const Reviews = () => {
                 }}></span>
               </h2>
               
+              {/* Mobile - Write Review button */}
+              {isMobile && (
+                <button
+                  onClick={() => setActiveTab('form')}
+                  style={{
+                    position: 'absolute',
+                    top: '0',
+                    right: '0',
+                    background: 'var(--accent)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '42px',
+                    height: '42px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 10px rgba(106, 44, 176, 0.2)',
+                  }}
+                >
+                  <i className="fas fa-pen"></i>
+                </button>
+              )}
+              
               {!loading && totalReviews > 0 && (
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '1rem',
+                  margin: isMobile ? '0.5rem auto 0' : '0', 
+                }}>
                   {/* Average Rating Circle */}
                   <div style={{
                     width: '55px',
@@ -709,6 +885,7 @@ const Reviews = () => {
                   marginBottom: '1rem',
                   scrollbarWidth: 'thin',
                   scrollbarColor: 'var(--accent) rgba(0,0,0,0.1)',
+                  maxHeight: isMobile ? '500px' : '650px',
                 }}
               >
                 {reviews.map(review => (

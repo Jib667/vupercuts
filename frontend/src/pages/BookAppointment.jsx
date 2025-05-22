@@ -703,7 +703,7 @@ const BookAppointment = () => {
                         571-992-4149
                       </a>
                       
-                      <a href="mailto:vu@vupercuts.com" style={{
+                      <a href="mailto:Vut2007rf@gmail.com" style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
@@ -729,7 +729,7 @@ const BookAppointment = () => {
                           justifyContent: 'center',
                           fontSize: '0.9rem',
                         }}></i>
-                        vu@vupercuts.com
+                        Vut2007rf@gmail.com
                       </a>
                     </div>
                   </div>
