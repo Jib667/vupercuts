@@ -1,1 +1,0 @@
-REVIEW_ID=$1; [ -f "/tmp/reviews.json" ] && jq "[.[] | select(.id != \"$REVIEW_ID\")]" /tmp/reviews.json > /tmp/reviews.json.new && mv /tmp/reviews.json.new /tmp/reviews.json && echo "Deleted review $REVIEW_ID" || echo "File not found"
