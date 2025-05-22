@@ -4,7 +4,7 @@ import axios from 'axios'
 const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api';
 
 class ReviewsService {
-  async getAllReviews() {
+  static async getAllReviews() {
     try {
       const response = await axios.get(`${API_URL}/reviews`)
       return response.data
@@ -14,7 +14,7 @@ class ReviewsService {
     }
   }
   
-  async submitReview(reviewData) {
+  static async submitReview(reviewData) {
     try {
       const response = await axios.post(`${API_URL}/reviews`, reviewData)
       return response.data
@@ -24,7 +24,7 @@ class ReviewsService {
     }
   }
   
-  async deleteReview(reviewId, authHeaders) {
+  static async deleteReview(reviewId, authHeaders) {
     try {
       const response = await axios.delete(`${API_URL}/reviews/${reviewId}`, {
         headers: authHeaders
@@ -36,7 +36,7 @@ class ReviewsService {
     }
   }
   
-  async verifyAdmin(username, password) {
+  static async verifyAdmin(username, password) {
     try {
       // Create Basic Auth header
       const authString = `${username}:${password}`
@@ -56,4 +56,4 @@ class ReviewsService {
   }
 }
 
-export default new ReviewsService() 
+export default ReviewsService 
