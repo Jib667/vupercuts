@@ -1,10 +1,9 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/:path*" }
-  ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/api/reviews/([^/]+)", "methods": ["DELETE", "OPTIONS"], "dest": "/api/deleteReview.py" },
+    { "src": "/api/reviews", "methods": ["GET", "POST", "OPTIONS"], "dest": "/api/reviews.py" },
+    { "src": "/api/admin/verify", "methods": ["GET", "OPTIONS"], "dest": "/api/adminVerify.py" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/frontend/dist/index.html" }
   ],
