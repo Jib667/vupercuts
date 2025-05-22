@@ -323,14 +323,14 @@ const Reviews = () => {
         marginTop: '60px', // Add margin to push content below navbar
         position: 'relative',
       }}>
-        {/* Accent line at top */}
-        <div style={{
+        {/* Accent line at top - removed */}
+        {/* <div style={{
           width: '100px',
           height: '4px',
           background: 'var(--accent)',
           marginBottom: '2rem',
           borderRadius: '2px',
-        }}></div>
+        }}></div> */}
         
         {/* Admin Controls */}
         <div style={{ 

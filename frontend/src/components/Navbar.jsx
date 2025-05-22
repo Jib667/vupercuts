@@ -139,7 +139,8 @@ const Navbar = () => {
         boxShadow: scrolled || alwaysDarkNavbar ? '0 4px 20px rgba(0, 0, 0, 0.2)' : 'none',
         transition: 'all 0.4s ease',
         width: '100%',
-        display: 'block'
+        display: 'block',
+        borderTop: 'none'
       }}>
         <div style={{
           display: 'flex',
