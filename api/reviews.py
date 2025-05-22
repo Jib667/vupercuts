@@ -4,23 +4,8 @@ import time
 import base64
 from datetime import datetime
 
-# In-memory storage for reviews (will reset on server restart)
-reviews = [
-    {
-        "id": "1747934236.194175",
-        "name": "Will Jordan",
-        "text": "I had a great experience at Vupercuts. The vibe, music, friendliness, and especially the haircut made it quite memorable. I've never gotten so many compliments on a haircut the next day too. For sure recommend!",
-        "rating": 5,
-        "createdAt": "2025-05-22T13:17:16.194201"
-    },
-    {
-        "id": "1747934847.719001",
-        "name": "Jibran Hutchins",
-        "text": "Great cut, great experience. Def recommend.",
-        "rating": 5,
-        "createdAt": "2025-05-22T13:27:27.719026"
-    }
-]
+# In-memory storage for reviews - empty initially
+reviews = []
 
 # Admin credentials
 ADMIN_CREDENTIALS = {"username": "admin", "password": "vupercuts2024"}
