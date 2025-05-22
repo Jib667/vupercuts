@@ -1,15 +1,12 @@
 {
   "version": 2,
-  "routes": [
-    { "src": "/api/test", "methods": ["GET"], "dest": "/api/test.py" },
-    { "src": "/api/reviews/([^/]+)", "methods": ["DELETE", "OPTIONS"], "dest": "/api/deleteReview.py" },
-    { "src": "/api/reviews", "methods": ["GET", "POST", "OPTIONS"], "dest": "/api/reviews.py" },
-    { "src": "/api/admin/verify", "methods": ["GET", "OPTIONS"], "dest": "/api/adminVerify.py" },
-    { "src": "/assets/(.*)", "dest": "/frontend/dist/assets/$1" },
-    { "src": "/(.+\\.[a-z]+)$", "dest": "/frontend/dist/$1" },
-    { "src": "/(.*)", "dest": "/frontend/dist/index.html", "status": 200 }
-  ],
   "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "npm install"
+  "rewrites": [
+    { "source": "/api/test", "destination": "/api/test.py" },
+    { "source": "/api/reviews/:id", "destination": "/api/deleteReview.py" },
+    { "source": "/api/reviews", "destination": "/api/reviews.py" },
+    { "source": "/api/admin/verify", "destination": "/api/adminVerify.py" },
+    { "source": "/(.*)", "destination": "/" }
+  ]
 } 
