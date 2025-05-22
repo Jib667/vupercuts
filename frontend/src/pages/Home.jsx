@@ -5,6 +5,7 @@ const Home = () => {
   const [videosLoaded, setVideosLoaded] = useState(0);
   const [allVideosLoaded, setAllVideosLoaded] = useState(false);
   const [showPlaceholder, setShowPlaceholder] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const videoRefs = useRef([]);
   
   // List of all available videos
@@ -23,6 +24,22 @@ const Home = () => {
   
   // Animation duration (in seconds) - reduced for faster scrolling
   const animationDuration = 25; // Reduced from 40
+  
+  // Check if device is mobile
+  useEffect(() => {
+    const checkIfMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileDevice = /iphone|ipod|ipad|android|blackberry|windows phone/g.test(userAgent);
+      setIsMobile(isMobileDevice || window.innerWidth <= 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
   
   useEffect(() => {
     // Preload videos
@@ -73,6 +90,11 @@ const Home = () => {
       100% { transform: translateX(calc(-100% * ${allVideos.length} / ${displayVideos.length})); }
     }
     
+    @keyframes scrollVideosMobile {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(calc(-100% * ${allVideos.length})); }
+    }
+    
     @keyframes float {
       0% { transform: translateY(0px); }
       50% { transform: translateY(-15px); }
@@ -92,6 +114,31 @@ const Home = () => {
     
     .video-element {
       transition: opacity 0.5s ease-in-out;
+    }
+    
+    @media (max-width: 768px) {
+      .hero-content h1 {
+        font-size: 3.5rem !important;
+      }
+      
+      .hero-content h2 {
+        font-size: 1.5rem !important;
+      }
+      
+      .hero-content p {
+        font-size: 0.9rem !important;
+      }
+      
+      .hero-buttons {
+        flex-direction: column;
+        gap: 1rem !important;
+      }
+      
+      .hero-button {
+        width: 100%;
+        padding: 0.8rem 1rem !important;
+        font-size: 0.9rem !important;
+      }
     }
   `;
   
@@ -140,9 +187,13 @@ const Home = () => {
             {/* Continuously scrolling video container */}
             <div style={{
               display: 'flex',
-              width: `calc(100% * ${displayVideos.length} / 3)`, // Width adjusted to show 3 videos at a time
+              width: isMobile 
+                ? `calc(100% * ${displayVideos.length})` // Show 1 video at a time on mobile
+                : `calc(100% * ${displayVideos.length} / 3)`, // Show 3 videos at a time on desktop
               height: '100%',
-              animation: `scrollVideos ${animationDuration}s linear infinite`,
+              animation: isMobile 
+                ? `scrollVideosMobile ${animationDuration}s linear infinite`
+                : `scrollVideos ${animationDuration}s linear infinite`,
               opacity: showPlaceholder ? 0 : 1,
               transition: 'opacity 0.5s ease-in-out'
             }}>
@@ -151,7 +202,7 @@ const Home = () => {
                 <div 
                   key={`video-${index}`}
                   style={{ 
-                    flex: `0 0 calc(100% / ${displayVideos.length})`, // Each video takes equal portion
+                    flex: `0 0 calc(100% / ${isMobile ? displayVideos.length : displayVideos.length / 3})`,
                     height: '100%',
                     position: 'relative',
                   }}
@@ -247,12 +298,12 @@ const Home = () => {
               <i className="fas fa-map-marker-alt" style={{ marginRight: '8px', color: 'var(--accent)' }}></i>
               3741 Prosperity Avenue, Fairfax, VA 22031
             </p>
-            <div style={{
+            <div className="hero-buttons" style={{
               display: 'flex',
               justifyContent: 'center',
               gap: '2rem',
             }}>
-              <Link to="/book" className="btn btn-accent btn-large" style={{
+              <Link to="/book" className="btn btn-accent btn-large hero-button" style={{
                 border: '2px solid rgba(255, 255, 255, 0.3)',
                 background: 'var(--accent)',
                 boxShadow: '0 8px 20px rgba(0, 0, 0, 0.3)',
@@ -269,9 +320,9 @@ const Home = () => {
                 e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.3)';
               }}>
                 <i className="fas fa-calendar-check" style={{ marginRight: '10px' }}></i>
-                Book an Appointment
+                {isMobile ? 'Book' : 'Book an Appointment'}
               </Link>
-              <Link to="/reviews" className="btn btn-outline btn-large" style={{
+              <Link to="/reviews" className="btn btn-outline btn-large hero-button" style={{
                 border: '2px solid rgba(255, 255, 255, 0.7)',
                 background: 'rgba(255, 255, 255, 0.1)',
                 transition: 'all 0.3s ease',
@@ -283,7 +334,7 @@ const Home = () => {
                 e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
               }}>
                 <i className="fas fa-star" style={{ marginRight: '10px', color: 'var(--accent)' }}></i>
-                See What Others Are Saying
+                {isMobile ? 'Reviews' : 'See What Others Are Saying'}
               </Link>
             </div>
           </div>
