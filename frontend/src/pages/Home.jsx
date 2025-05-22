@@ -22,8 +22,9 @@ const Home = () => {
   // For seamless looping, we duplicate the first few videos at the end
   const displayVideos = [...allVideos, ...allVideos.slice(0, 3)];
   
-  // Animation duration (in seconds) - reduced for faster scrolling
-  const animationDuration = 25; // Reduced from 40
+  // Animation duration (in seconds)
+  const desktopDuration = 35; // Slower for desktop
+  const mobileDuration = 50;  // Much slower for mobile
   
   // Check if device is mobile
   useEffect(() => {
@@ -87,12 +88,12 @@ const Home = () => {
   const keyframesStyle = `
     @keyframes scrollVideos {
       0% { transform: translateX(0); }
-      100% { transform: translateX(calc(-100% * ${allVideos.length} / ${displayVideos.length})); }
+      100% { transform: translateX(calc(-${(allVideos.length / displayVideos.length) * 100}%)); }
     }
     
     @keyframes scrollVideosMobile {
       0% { transform: translateX(0); }
-      100% { transform: translateX(calc(-100% * ${allVideos.length})); }
+      100% { transform: translateX(calc(-${(allVideos.length / displayVideos.length) * 100}%)); }
     }
     
     @keyframes float {
@@ -187,44 +188,55 @@ const Home = () => {
             {/* Continuously scrolling video container */}
             <div style={{
               display: 'flex',
-              width: isMobile 
-                ? `calc(100% * ${displayVideos.length})` // Show 1 video at a time on mobile
-                : `calc(100% * ${displayVideos.length} / 3)`, // Show 3 videos at a time on desktop
+              width: '100%',
               height: '100%',
-              animation: isMobile 
-                ? `scrollVideosMobile ${animationDuration}s linear infinite`
-                : `scrollVideos ${animationDuration}s linear infinite`,
-              opacity: showPlaceholder ? 0 : 1,
-              transition: 'opacity 0.5s ease-in-out'
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              {/* Map all videos into the row */}
-              {displayVideos.map((videoSrc, index) => (
-                <div 
-                  key={`video-${index}`}
-                  style={{ 
-                    flex: `0 0 calc(100% / ${isMobile ? displayVideos.length : displayVideos.length / 3})`,
-                    height: '100%',
-                    position: 'relative',
-                  }}
-                >
-                  <video 
-                    ref={el => videoRefs.current[index] = el}
-                    className="video-element"
-                    style={{
-                      width: '100%',
+              <div style={{
+                display: 'flex',
+                width: isMobile 
+                  ? `${displayVideos.length * 100}%` // Mobile: all videos in a row
+                  : `${displayVideos.length * 33.333}%`, // Desktop: show 3 at a time
+                height: '100%',
+                animation: isMobile 
+                  ? `scrollVideosMobile ${mobileDuration}s linear infinite`
+                  : `scrollVideos ${desktopDuration}s linear infinite`,
+                opacity: showPlaceholder ? 0 : 1,
+                transition: 'opacity 0.5s ease-in-out',
+                willChange: 'transform', // Performance optimization
+              }}>
+                {/* Map all videos into the row */}
+                {displayVideos.map((videoSrc, index) => (
+                  <div 
+                    key={`video-${index}`}
+                    style={{ 
+                      width: isMobile 
+                        ? `${100 / displayVideos.length}%` // Each video takes equal portion
+                        : `${100 / displayVideos.length}%`, // Each video has same width on both views
                       height: '100%',
-                      objectFit: 'cover'
+                      position: 'relative',
                     }}
-                    autoPlay 
-                    loop 
-                    muted 
-                    playsInline
-                    preload="auto"
                   >
-                    <source src={videoSrc} type="video/mp4" />
-                  </video>
-                </div>
-              ))}
+                    <video 
+                      ref={el => videoRefs.current[index] = el}
+                      className="video-element"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                      autoPlay 
+                      loop 
+                      muted 
+                      playsInline
+                      preload="auto"
+                    >
+                      <source src={videoSrc} type="video/mp4" />
+                    </video>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           
