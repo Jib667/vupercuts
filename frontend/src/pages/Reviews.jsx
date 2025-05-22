@@ -393,8 +393,8 @@ const Reviews = () => {
           borderRadius: '2px',
         }}></div> */}
         
-        {/* Admin Controls */}
-        <div style={{ 
+        {/* Admin Controls - REMOVED */}
+        {/* <div style={{ 
           display: 'flex', 
           justifyContent: 'flex-end',
           marginBottom: '2rem'
@@ -447,7 +447,7 @@ const Reviews = () => {
               Admin
             </button>
           )}
-        </div>
+        </div> */}
       
         {successMessage && (
           <div style={{
@@ -763,7 +763,7 @@ const Reviews = () => {
               </h2>
               
               {/* Mobile - Write Review button */}
-              {isMobile && (
+              {/* {isMobile && (
                 <button
                   onClick={() => setActiveTab('form')}
                   style={{
@@ -784,7 +784,7 @@ const Reviews = () => {
                 >
                   <i className="fas fa-pen"></i>
                 </button>
-              )}
+              )} */}
               
               {!loading && totalReviews > 0 && (
                 <div style={{ 
