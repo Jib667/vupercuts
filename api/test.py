@@ -1,41 +1,45 @@
 from http.server import BaseHTTPRequestHandler
 import json
+import time
+from datetime import datetime
 import os
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("test")
+from api.reviews import reviews
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        logger.info("Test endpoint called")
+        # Log file location
+        log_path = "/tmp/debug.log"
         
-        # Get environment info
-        env_info = {
-            "tmp_dir_exists": os.path.exists("/tmp"),
-            "tmp_dir_writable": os.access("/tmp", os.W_OK),
-            "current_dir": os.getcwd(),
-            "listdir_tmp": os.listdir("/tmp") if os.path.exists("/tmp") else [],
-            "path": self.path,
-            "headers": dict(self.headers),
-            "vercel_env": os.environ.get("VERCEL_ENV", "not set"),
-            "python_version": os.environ.get("PYTHON_VERSION", "not set")
-        }
+        # Add a test review if none exist
+        if not reviews:
+            reviews.append({
+                'id': "test-review-id",
+                'name': "Test User",
+                'text': "This is a test review added via test API",
+                'rating': 5,
+                'createdAt': datetime.now().isoformat()
+            })
         
-        # Create a test file in /tmp
-        test_file_path = "/tmp/test-file.txt"
-        try:
-            with open(test_file_path, "w") as f:
-                f.write("Test file created at " + str(os.environ.get("NOW_READY")))
-            env_info["test_file_created"] = True
-        except Exception as e:
-            env_info["test_file_created"] = False
-            env_info["test_file_error"] = str(e)
+        # Read debug log if it exists
+        debug_log = ""
+        if os.path.exists(log_path):
+            try:
+                with open(log_path, "r") as f:
+                    debug_log = f.read()
+            except:
+                debug_log = "Error reading debug log"
         
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
-        self.wfile.write(json.dumps(env_info).encode()) 
+        response_data = {
+            "message": "Test endpoint",
+            "reviews": reviews,
+            "reviewCount": len(reviews),
+            "serverTime": datetime.now().isoformat(),
+            "debugLog": debug_log[:5000]  # Limit log size
+        }
+        
+        self.wfile.write(json.dumps(response_data).encode()) 

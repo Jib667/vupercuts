@@ -3,15 +3,45 @@ import json
 import time
 import base64
 import re
+import os
 from datetime import datetime
 
-# In-memory storage for reviews - empty initially
-reviews = []
+# File storage for reviews
+REVIEWS_FILE = "/tmp/reviews.json"
 
 # Admin credentials
 ADMIN_CREDENTIALS = {"username": "admin", "password": "vupercuts2024"}
 
-def calculate_average_rating():
+def debug_log(message):
+    with open("/tmp/debug.log", "a") as f:
+        f.write(f"{datetime.now().isoformat()} - {message}\n")
+
+def load_reviews():
+    """Load reviews from file storage"""
+    try:
+        if os.path.exists(REVIEWS_FILE):
+            with open(REVIEWS_FILE, "r") as f:
+                reviews = json.load(f)
+                debug_log(f"Loaded {len(reviews)} reviews from file")
+                return reviews
+    except Exception as e:
+        debug_log(f"Error loading reviews: {str(e)}")
+    
+    debug_log("Initializing empty reviews")
+    return []
+
+def save_reviews(reviews):
+    """Save reviews to file storage"""
+    try:
+        with open(REVIEWS_FILE, "w") as f:
+            json.dump(reviews, f)
+        debug_log(f"Saved {len(reviews)} reviews to file")
+        return True
+    except Exception as e:
+        debug_log(f"Error saving reviews: {str(e)}")
+        return False
+
+def calculate_average_rating(reviews):
     if not reviews:
         return 0
     total_rating = sum(review.get('rating', 0) for review in reviews)
@@ -19,12 +49,18 @@ def calculate_average_rating():
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        debug_log(f"GET request to {self.path}")
+        
+        # Load reviews from file
+        reviews = load_reviews()
+        debug_log(f"Loaded reviews for GET: {len(reviews)}")
+        
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
-        avg_rating = calculate_average_rating()
+        avg_rating = calculate_average_rating(reviews)
         
         response_data = {
             "reviews": reviews,
@@ -35,9 +71,17 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response_data).encode())
     
     def do_POST(self):
+        debug_log(f"POST request to {self.path}")
+        
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data.decode('utf-8'))
+        
+        debug_log(f"POST data: {data}")
+        
+        # Load current reviews
+        reviews = load_reviews()
+        debug_log(f"Loaded reviews for POST: {len(reviews)}")
         
         # Check if this is a delete action
         if data.get('action') == 'delete':
@@ -62,17 +106,22 @@ class handler(BaseHTTPRequestHandler):
                 self.send_error_response(400, "Missing review ID")
                 return
             
+            debug_log(f"Attempting to delete review ID: {review_id}")
+            
             # Find and remove the review
-            global reviews
             initial_length = len(reviews)
-            reviews[:] = [r for r in reviews if str(r.get('id')) != str(review_id)]
+            reviews = [r for r in reviews if str(r.get('id')) != str(review_id)]
             
             if len(reviews) == initial_length:
+                debug_log(f"Review with ID {review_id} not found")
                 self.send_error_response(404, "Review not found")
                 return
             
+            # Save updated reviews
+            save_reviews(reviews)
+            
             # Calculate new average
-            avg_rating = calculate_average_rating()
+            avg_rating = calculate_average_rating(reviews)
             
             # Send success response
             self.send_response(200)
@@ -99,10 +148,17 @@ class handler(BaseHTTPRequestHandler):
             'createdAt': datetime.now().isoformat()
         }
         
-        # Add to in-memory list
+        debug_log(f"Adding new review: {review}")
+        
+        # Add to reviews list
         reviews.append(review)
         
-        avg_rating = calculate_average_rating()
+        # Save updated reviews
+        save_reviews(reviews)
+        
+        debug_log(f"Current reviews after addition: {len(reviews)}")
+        
+        avg_rating = calculate_average_rating(reviews)
         
         self.send_response(201)
         self.send_header('Content-type', 'application/json')
@@ -118,9 +174,17 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response_data).encode())
     
     def do_DELETE(self):
+        debug_log(f"DELETE request to {self.path}")
+        debug_log(f"Headers: {self.headers}")
+        
+        # Load current reviews
+        reviews = load_reviews()
+        debug_log(f"Loaded reviews for DELETE: {len(reviews)}")
+        
         # Verify admin authentication
         auth_header = self.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Basic '):
+            debug_log("Missing or invalid auth header")
             self.send_error_response(401, "Unauthorized")
             return
         
@@ -129,31 +193,55 @@ class handler(BaseHTTPRequestHandler):
         decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
         username, password = decoded_credentials.split(':')
         
+        debug_log(f"Auth attempt with username: {username}")
+        
         if username != ADMIN_CREDENTIALS["username"] or password != ADMIN_CREDENTIALS["password"]:
+            debug_log("Invalid credentials")
             self.send_error_response(401, "Invalid credentials")
             return
         
-        # Extract review ID from path
+        # Extract review ID from path - try multiple patterns
+        review_id = None
+        
+        # Try standard pattern
         match = re.search(r'/api/reviews/([^/]+)', self.path)
-        if not match:
+        if match:
+            review_id = match.group(1)
+        else:
+            # Try alternate pattern
+            parts = self.path.strip('/').split('/')
+            if len(parts) >= 3 and parts[-2] == 'reviews':
+                review_id = parts[-1]
+        
+        debug_log(f"Extracted review ID: {review_id}")
+        
+        if not review_id:
+            debug_log(f"Could not extract review ID from path: {self.path}")
             self.send_error_response(400, "Invalid request path")
             return
         
-        review_id = match.group(1)
-        
         # Find and remove the review
-        global reviews
+        debug_log(f"Attempting to delete review with ID: {review_id}")
+        debug_log(f"Current reviews IDs: {[r.get('id') for r in reviews]}")
+        
         initial_length = len(reviews)
-        reviews[:] = [r for r in reviews if str(r.get('id')) != str(review_id)]
+        reviews = [r for r in reviews if str(r.get('id')) != str(review_id)]
+        
+        debug_log(f"Reviews after deletion attempt: {len(reviews)}")
         
         if len(reviews) == initial_length:
+            debug_log(f"Review with ID {review_id} not found in current reviews")
             self.send_error_response(404, "Review not found")
             return
         
+        # Save updated reviews
+        save_reviews(reviews)
+        
         # Calculate new average
-        avg_rating = calculate_average_rating()
+        avg_rating = calculate_average_rating(reviews)
         
         # Success response
+        debug_log("Sending success response for deletion")
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -168,6 +256,7 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response_data).encode())
     
     def do_OPTIONS(self):
+        debug_log(f"OPTIONS request to {self.path}")
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
@@ -175,6 +264,7 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
     
     def send_error_response(self, status_code, message):
+        debug_log(f"Sending error response: {status_code} - {message}")
         self.send_response(status_code)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
