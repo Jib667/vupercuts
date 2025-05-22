@@ -80,38 +80,102 @@ function enhanceReviewDeletion() {
     
     console.log(`Attempting to delete review with ID: ${reviewId}`);
     
-    try {
-      // Get admin credentials - these should match what's in the backend
-      const username = 'admin';
-      const password = 'vupercuts2024';
-      const authHeader = 'Basic ' + btoa(`${username}:${password}`);
-      
-      // Make the DELETE request with cache busting
-      const response = await fetch(`/api/reviews/${reviewId}?t=${Date.now()}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        cache: 'no-store'
-      });
-      
-      const data = await response.json();
-      console.log('Delete response:', data);
-      
-      if (response.ok) {
-        console.log('Review deleted successfully');
-        // Reload the page to show the updated list, with cache busting
-        window.location.href = window.location.pathname + '?nocache=' + Date.now();
-      } else {
-        console.error('Failed to delete review:', data.message || 'Unknown error');
-        alert('Failed to delete review: ' + (data.message || 'Unknown error'));
+    // Show a loading message to prevent multiple clicks
+    let loadingMsg = document.createElement('div');
+    loadingMsg.textContent = 'Deleting review...';
+    loadingMsg.style.position = 'fixed';
+    loadingMsg.style.top = '10px';
+    loadingMsg.style.right = '10px';
+    loadingMsg.style.backgroundColor = '#ffcc00';
+    loadingMsg.style.color = '#000';
+    loadingMsg.style.padding = '10px';
+    loadingMsg.style.borderRadius = '5px';
+    loadingMsg.style.zIndex = '9999';
+    document.body.appendChild(loadingMsg);
+    
+    // Get admin credentials
+    const username = 'admin';
+    const password = 'vupercuts2024';
+    const authHeader = 'Basic ' + btoa(`${username}:${password}`);
+    
+    // Try up to 3 times to delete the review
+    let deleteSuccess = false;
+    let errorMessage = '';
+    
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`Delete attempt ${attempt} for review ID: ${reviewId}`);
+        
+        // Make the DELETE request with cache busting
+        const response = await fetch(`/api/reviews/${reviewId}?t=${Date.now()}.${Math.random()}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          cache: 'no-store'
+        });
+        
+        const data = await response.json();
+        console.log(`Delete attempt ${attempt} response:`, data);
+        
+        if (response.ok) {
+          console.log('Review deleted successfully');
+          deleteSuccess = true;
+          break;
+        } else {
+          errorMessage = data.error || data.message || 'Unknown error';
+          console.error(`Attempt ${attempt} failed:`, errorMessage);
+          
+          // Wait 1 second before retrying
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      } catch (error) {
+        console.error(`Attempt ${attempt} exception:`, error);
+        errorMessage = error.message;
+        
+        // Wait 1 second before retrying
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
-    } catch (error) {
-      console.error('Error deleting review:', error);
-      alert('Error deleting review: ' + error.message);
+    }
+    
+    // Remove the loading message
+    document.body.removeChild(loadingMsg);
+    
+    if (deleteSuccess) {
+      // Show success message
+      const successMsg = document.createElement('div');
+      successMsg.textContent = 'Review deleted successfully!';
+      successMsg.style.position = 'fixed';
+      successMsg.style.top = '10px';
+      successMsg.style.right = '10px';
+      successMsg.style.backgroundColor = '#4CAF50';
+      successMsg.style.color = 'white';
+      successMsg.style.padding = '10px';
+      successMsg.style.borderRadius = '5px';
+      successMsg.style.zIndex = '9999';
+      document.body.appendChild(successMsg);
+      
+      // Remove the success message after 3 seconds
+      setTimeout(() => {
+        document.body.removeChild(successMsg);
+        
+        // Reload the page to show the updated list, with cache busting
+        window.location.href = window.location.pathname + '?nocache=' + Date.now() + '&r=' + Math.random();
+      }, 3000);
+    } else {
+      // If all attempts failed, show error message
+      alert('Failed to delete review after multiple attempts: ' + errorMessage);
+      
+      // Force reload anyway to try to get a clean state
+      window.location.href = window.location.pathname + '?nocache=' + Date.now() + '&r=' + Math.random();
     }
   };
   
