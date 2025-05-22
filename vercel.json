@@ -4,7 +4,7 @@
   "outputDirectory": "frontend/dist",
   "rewrites": [
     { "source": "/api/test", "destination": "/api/test.py" },
-    { "source": "/api/reviews/:id", "destination": "/api/reviews.py" },
+    { "source": "/api/reviews/:id", "destination": "/api/deleteReview.py" },
     { "source": "/api/reviews", "destination": "/api/reviews.py" },
     { "source": "/api/admin/verify", "destination": "/api/adminVerify.py" },
     { "source": "/(.*)", "destination": "/" }

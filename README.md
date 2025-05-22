@@ -73,6 +73,35 @@ As an admin, you can:
 - Monitor customer feedback
 - View aggregate ratings
 
+### Deleting Reviews
+
+#### Using the Admin Interface
+1. Log in to the admin panel using the credentials above
+2. Navigate to the Reviews page
+3. Click the trash icon next to the review you want to delete
+
+#### Using the Command Line
+You can also delete reviews directly from the command line:
+
+1. First, get the review ID:
+   ```
+   # Option 1: View network requests in browser DevTools
+   # Option 2: Run this command to list all reviews with their IDs
+   curl -s "https://vupercuts.vercel.app/api/reviews" | grep -o '"id":"[^"]*"'
+   ```
+
+2. Delete the review using curl:
+   ```
+   curl -X DELETE "https://vupercuts.vercel.app/api/reviews/YOUR_REVIEW_ID"
+   ```
+
+3. For convenience, you can create a shell script:
+   ```
+   echo 'curl -X DELETE "https://vupercuts.vercel.app/api/reviews/$1"' > delete_review.sh
+   chmod +x delete_review.sh
+   ./delete_review.sh YOUR_REVIEW_ID
+   ```
+
 ## Deployment
 
 This project is configured to deploy on Vercel. The `vercel.json` file contains the necessary configuration.
