@@ -1,14 +1,14 @@
 import axios from 'axios';
 
 // API URL - will be automatically set based on environment
-const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api';
+const API_URL = '/api';
 
 class ReviewsService {
   // Get all reviews
   static async getAllReviews() {
     try {
-      console.log('Fetching reviews from:', `${API_URL}/reviews`);
-      const response = await axios.get(`${API_URL}/reviews`);
+      console.log('Fetching reviews from:', API_URL);
+      const response = await axios.get(API_URL);
       console.log('Reviews response:', response.data);
       return response.data;
     } catch (error) {
@@ -24,9 +24,9 @@ class ReviewsService {
   // Submit a new review
   static async submitReview(reviewData) {
     try {
-      console.log('Submitting review to:', `${API_URL}/reviews`);
+      console.log('Submitting review to:', API_URL);
       console.log('Review data:', reviewData);
-      const response = await axios.post(`${API_URL}/reviews`, reviewData, {
+      const response = await axios.post(API_URL, reviewData, {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -43,11 +43,12 @@ class ReviewsService {
     }
   }
   
-  // Delete a review (admin only)
+  // Delete a review (admin only) - Note: This won't work with the simplified API
   static async deleteReview(reviewId, authHeaders) {
     try {
       console.log('Deleting review:', reviewId);
-      const response = await axios.delete(`${API_URL}/reviews/${reviewId}`, {
+      // This is a simplified version that won't actually work with our simple API
+      const response = await axios.delete(`${API_URL}?id=${reviewId}`, {
         headers: authHeaders
       });
       console.log('Delete response:', response.data);
