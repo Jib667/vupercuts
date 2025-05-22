@@ -2,13 +2,10 @@ from http.server import BaseHTTPRequestHandler
 import json
 import base64
 import re
-import logging
-import traceback
-from api.db import delete_review, verify_admin
+from api.reviews import reviews, calculate_average_rating
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("deleteReview")
+# Admin credentials
+ADMIN_CREDENTIALS = {"username": "admin", "password": "vupercuts2024"}
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -19,65 +16,54 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
     
     def do_DELETE(self):
-        logger.info(f"DELETE request received: {self.path}")
-        logger.info(f"Headers: {self.headers}")
-        
         # Check authorization
         auth_header = self.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Basic '):
-            logger.error("Missing or invalid Authorization header")
             self.send_error_response(401, "Unauthorized")
             return
         
-        try:
-            # Extract and check credentials
-            encoded_credentials = auth_header[6:]  # Remove 'Basic '
-            decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
-            username, password = decoded_credentials.split(':')
-            
-            logger.info(f"Received auth for username: {username}")
-            
-            if not verify_admin(username, password):
-                logger.error(f"Invalid credentials for username: {username}")
-                self.send_error_response(401, "Invalid credentials")
-                return
-            
-            # Extract review ID from path
-            path_parts = self.path.strip('/').split('/')
-            if len(path_parts) < 3:
-                logger.error(f"Invalid path format: {self.path}, parts: {path_parts}")
-                self.send_error_response(400, "Invalid request path")
-                return
-            
-            review_id = path_parts[-1]
-            logger.info(f"Attempting to delete review with ID: {review_id}")
-            
-            # Delete the review using our database module
-            success, avg_rating, total_reviews = delete_review(review_id)
-            
-            if not success:
-                logger.error(f"Failed to delete review with ID: {review_id}")
-                self.send_error_response(404, "Review not found or could not be deleted")
-                return
-            
-            # Success response
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            
-            response_data = {
-                "message": "Review deleted successfully",
-                "averageRating": avg_rating,
-                "totalReviews": total_reviews
-            }
-            
-            self.wfile.write(json.dumps(response_data).encode())
-            
-        except Exception as e:
-            logger.error(f"Error deleting review: {str(e)}")
-            logger.error(traceback.format_exc())
-            self.send_error_response(500, f"Server error: {str(e)}")
+        # Extract and check credentials
+        encoded_credentials = auth_header[6:]  # Remove 'Basic '
+        decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
+        username, password = decoded_credentials.split(':')
+        
+        if username != ADMIN_CREDENTIALS["username"] or password != ADMIN_CREDENTIALS["password"]:
+            self.send_error_response(401, "Invalid credentials")
+            return
+        
+        # Extract review ID from path
+        match = re.search(r'/api/reviews/([^/]+)', self.path)
+        if not match:
+            self.send_error_response(400, "Invalid request path")
+            return
+        
+        review_id = match.group(1)
+        
+        # Find and remove the review
+        global reviews
+        initial_length = len(reviews)
+        reviews[:] = [r for r in reviews if str(r.get('id')) != str(review_id)]
+        
+        if len(reviews) == initial_length:
+            self.send_error_response(404, "Review not found")
+            return
+        
+        # Calculate new average
+        avg_rating = calculate_average_rating()
+        
+        # Success response
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        
+        response_data = {
+            "message": "Review deleted successfully",
+            "averageRating": avg_rating,
+            "totalReviews": len(reviews)
+        }
+        
+        self.wfile.write(json.dumps(response_data).encode())
     
     def send_error_response(self, status_code, message):
         self.send_response(status_code)
