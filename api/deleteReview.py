@@ -1,62 +1,14 @@
 from http.server import BaseHTTPRequestHandler
 import json
-import os
 import base64
 import re
 import logging
 import traceback
+from api.db import delete_review, verify_admin
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("deleteReview")
-
-# Data storage path for Vercel
-DATA_DIR = '/tmp'
-REVIEWS_FILE = os.path.join(DATA_DIR, 'reviews.json')
-ADMIN_CREDENTIALS_FILE = os.path.join(DATA_DIR, 'admin.json')
-
-def get_admin_credentials():
-    # Default credentials if file doesn't exist
-    if not os.path.exists(ADMIN_CREDENTIALS_FILE):
-        return {"username": "admin", "password": "vupercuts2024"}
-    
-    try:
-        with open(ADMIN_CREDENTIALS_FILE, 'r') as f:
-            return json.load(f)
-    except:
-        return {"username": "admin", "password": "vupercuts2024"}
-
-def get_reviews():
-    try:
-        if not os.path.exists(REVIEWS_FILE):
-            logger.info(f"Reviews file not found at {REVIEWS_FILE}")
-            return []
-        with open(REVIEWS_FILE, 'r') as f:
-            data = json.load(f)
-            logger.info(f"Loaded {len(data)} reviews from file")
-            return data
-    except Exception as e:
-        logger.error(f"Error reading reviews: {str(e)}")
-        return []
-
-def save_reviews(reviews):
-    # Ensure directory exists
-    try:
-        if not os.path.exists(DATA_DIR):
-            os.makedirs(DATA_DIR)
-        
-        with open(REVIEWS_FILE, 'w') as f:
-            json.dump(reviews, f)
-        logger.info(f"Saved {len(reviews)} reviews to file")
-    except Exception as e:
-        logger.error(f"Error saving reviews: {str(e)}")
-
-def calculate_average_rating(reviews):
-    if not reviews:
-        return 0
-    
-    total_rating = sum(review.get('rating', 0) for review in reviews)
-    return round(total_rating / len(reviews), 1)
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -84,15 +36,13 @@ class handler(BaseHTTPRequestHandler):
             username, password = decoded_credentials.split(':')
             
             logger.info(f"Received auth for username: {username}")
-            admin_credentials = get_admin_credentials()
             
-            if username != admin_credentials['username'] or password != admin_credentials['password']:
-                logger.error(f"Invalid credentials. Expected username: {admin_credentials['username']}")
+            if not verify_admin(username, password):
+                logger.error(f"Invalid credentials for username: {username}")
                 self.send_error_response(401, "Invalid credentials")
                 return
             
             # Extract review ID from path
-            # Simpler path extraction - just get the last part of the URL
             path_parts = self.path.strip('/').split('/')
             if len(path_parts) < 3:
                 logger.error(f"Invalid path format: {self.path}, parts: {path_parts}")
@@ -100,27 +50,15 @@ class handler(BaseHTTPRequestHandler):
                 return
             
             review_id = path_parts[-1]
-            logger.info(f"Extracted review ID: {review_id} from path: {self.path}")
+            logger.info(f"Attempting to delete review with ID: {review_id}")
             
-            # Get reviews and delete the requested one
-            reviews = get_reviews()
-            logger.info(f"Current reviews: {reviews}")
-            initial_count = len(reviews)
+            # Delete the review using our database module
+            success, avg_rating, total_reviews = delete_review(review_id)
             
-            # Filter out the review to be deleted
-            filtered_reviews = [review for review in reviews if str(review.get('id')) != str(review_id)]
-            
-            if len(filtered_reviews) == initial_count:
-                logger.error(f"Review not found with ID: {review_id}")
-                self.send_error_response(404, "Review not found")
+            if not success:
+                logger.error(f"Failed to delete review with ID: {review_id}")
+                self.send_error_response(404, "Review not found or could not be deleted")
                 return
-            
-            # Save updated reviews
-            logger.info(f"Deleting review. Count before: {initial_count}, after: {len(filtered_reviews)}")
-            save_reviews(filtered_reviews)
-            
-            # Return updated average rating
-            avg_rating = calculate_average_rating(filtered_reviews) if filtered_reviews else 0
             
             # Success response
             self.send_response(200)
@@ -131,7 +69,7 @@ class handler(BaseHTTPRequestHandler):
             response_data = {
                 "message": "Review deleted successfully",
                 "averageRating": avg_rating,
-                "totalReviews": len(filtered_reviews)
+                "totalReviews": total_reviews
             }
             
             self.wfile.write(json.dumps(response_data).encode())

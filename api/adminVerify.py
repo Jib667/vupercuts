@@ -1,33 +1,13 @@
 from http.server import BaseHTTPRequestHandler
 import json
-import os
 import base64
 import logging
 import traceback
+from api.db import verify_admin
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("adminVerify")
-
-# Data storage path for Vercel
-DATA_DIR = '/tmp'
-ADMIN_CREDENTIALS_FILE = os.path.join(DATA_DIR, 'admin.json')
-
-def get_admin_credentials():
-    # Default credentials if file doesn't exist
-    if not os.path.exists(ADMIN_CREDENTIALS_FILE):
-        logger.info(f"Admin credentials file not found at {ADMIN_CREDENTIALS_FILE}, using defaults")
-        return {"username": "admin", "password": "vupercuts2024"}
-    
-    try:
-        with open(ADMIN_CREDENTIALS_FILE, 'r') as f:
-            credentials = json.load(f)
-            logger.info(f"Loaded admin credentials for user: {credentials.get('username')}")
-            return credentials
-    except Exception as e:
-        logger.error(f"Error reading admin credentials: {str(e)}")
-        logger.error(traceback.format_exc())
-        return {"username": "admin", "password": "vupercuts2024"}
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -48,10 +28,9 @@ class handler(BaseHTTPRequestHandler):
             username, password = decoded_credentials.split(':')
             
             logger.info(f"Received auth for username: {username}")
-            admin_credentials = get_admin_credentials()
             
-            if username != admin_credentials['username'] or password != admin_credentials['password']:
-                logger.error(f"Invalid credentials. Expected username: {admin_credentials['username']}")
+            if not verify_admin(username, password):
+                logger.error(f"Invalid credentials for username: {username}")
                 self.send_error_response(401, "Invalid credentials")
                 return
             
