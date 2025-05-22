@@ -1,0 +1,162 @@
+/* Mobile nav styles */
+@media (max-width: 768px) {
+  .desktop-menu {
+    display: none !important;
+  }
+  
+  .mobile-menu-button {
+    display: flex !important;
+    margin-right: 15px; /* Add space between button and logo */
+  }
+  
+  .section {
+    padding: 4rem 0;
+  }
+  
+  .section-title {
+    font-size: 2rem;
+  }
+  
+  .about-section {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .services-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .time-slots {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  
+  .hero-section {
+    padding: 6rem 0 !important;
+  }
+  
+  h1 {
+    font-size: 3rem !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-menu-button {
+    display: none !important;
+  }
+}
+
+/* Force mobile button to always display at small screens */
+@media screen and (max-width: 768px) {
+  .mobile-menu-button {
+    display: flex !important;
+  }
+}
+
+/* Mobile menu overlay */
+.mobile-menu {
+  z-index: 1000;
+}
+
+.mobile-menu.open {
+  transform: translateX(0) !important;
+}
+
+/* Hamburger menu animation */
+.mobile-menu-button {
+  position: relative;
+  z-index: 1010;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+}
+
+.mobile-menu-button span {
+  display: block;
+  height: 4px;
+  width: 100%;
+  background: white;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+  margin: 2px 0;
+}
+
+.mobile-menu-button:hover span {
+  background: var(--accent);
+}
+
+/* Overlay for mobile menu */
+body.menu-open::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.service-card, .review-card, .calendar-container, form {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.service-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.service-card:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.review-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.review-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.review-card:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+.review-card:nth-child(5) {
+  animation-delay: 0.4s;
+}
+
+/* Focus styles for better accessibility */
+input:focus, 
+select:focus, 
+textarea:focus,
+button:focus,
+a:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(42, 117, 224, 0.3);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Active navigation indication */
+.nav-link.active {
+  position: relative;
+}
+
+.nav-link.active:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--accent);
+} 

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Test</title>
+  <style>
+    body { 
+      margin: 0; 
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+    h1 {
+      margin: 20px 0;
+    }
+    .video-container {
+      width: 80%;
+      max-width: 600px;
+      margin: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    video {
+      width: 100%;
+      display: block;
+    }
+    p {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Video Test Page</h1>
+  
+  <div class="video-container">
+    <p>Video 1:</p>
+    <video controls autoplay muted>
+      <source src="/videos/haircut-video1.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+  
+  <div class="video-container">
+    <p>Video 2:</p>
+    <video controls autoplay muted>
+      <source src="/videos/haircut-video2.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+  
+  <div class="video-container">
+    <p>Video 3:</p>
+    <video controls autoplay muted>
+      <source src="/videos/haircut-video3.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <p>If videos don't play here, the issue may be with the video files themselves or browser compatibility.</p>
+</body>
+</html> 
