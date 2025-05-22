@@ -198,6 +198,7 @@ p {
   padding-bottom: 1rem;
 }
 
+/* Removed accent line
 .section-title:after {
   content: '';
   position: absolute;
@@ -209,6 +210,7 @@ p {
   background: var(--accent);
   border-radius: 3px;
 }
+*/
 
 /* Form elements */
 .form-group {
