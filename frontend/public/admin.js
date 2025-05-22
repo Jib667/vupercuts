@@ -8,8 +8,64 @@ document.addEventListener('DOMContentLoaded', function() {
   // Check if we're on the reviews page
   if (window.location.pathname.includes('reviews')) {
     enhanceReviewDeletion();
+    addClearAllButton();
   }
 });
+
+// Function to add a "Clear All Reviews" button for admin
+function addClearAllButton() {
+  // Create button container
+  const container = document.createElement('div');
+  container.style.margin = '20px 0';
+  container.style.textAlign = 'center';
+  
+  // Create the button
+  const button = document.createElement('button');
+  button.textContent = 'EMERGENCY: Clear All Reviews';
+  button.style.backgroundColor = '#ff3333';
+  button.style.color = 'white';
+  button.style.padding = '10px 20px';
+  button.style.border = 'none';
+  button.style.borderRadius = '5px';
+  button.style.cursor = 'pointer';
+  
+  button.addEventListener('click', function() {
+    if (confirm('WARNING: This will permanently delete ALL reviews. This cannot be undone. Continue?')) {
+      nukeAllReviews();
+    }
+  });
+  
+  // Add button to container
+  container.appendChild(button);
+  
+  // Find a good place to insert it (at the top of the reviews section)
+  const reviewsSection = document.querySelector('.reviews-container') || document.querySelector('main');
+  if (reviewsSection) {
+    reviewsSection.prepend(container);
+  }
+}
+
+// Function to clear all reviews (emergency use only)
+async function nukeAllReviews() {
+  try {
+    // First try the nuke endpoint
+    const response = await fetch('/api/nuke-reviews?t=' + Date.now(), {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
+    console.log('Nuke response:', await response.json());
+    
+    // Then reload with cache busting
+    window.location.href = window.location.pathname + '?nocache=' + Date.now();
+  } catch (error) {
+    console.error('Failed to clear reviews:', error);
+    alert('Failed to clear all reviews: ' + error.message);
+  }
+}
 
 // Function to enhance review deletion
 function enhanceReviewDeletion() {
@@ -30,13 +86,16 @@ function enhanceReviewDeletion() {
       const password = 'vupercuts2024';
       const authHeader = 'Basic ' + btoa(`${username}:${password}`);
       
-      // Make the DELETE request
-      const response = await fetch(`/api/reviews/${reviewId}`, {
+      // Make the DELETE request with cache busting
+      const response = await fetch(`/api/reviews/${reviewId}?t=${Date.now()}`, {
         method: 'DELETE',
         headers: {
           'Authorization': authHeader,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
       });
       
       const data = await response.json();
@@ -44,8 +103,8 @@ function enhanceReviewDeletion() {
       
       if (response.ok) {
         console.log('Review deleted successfully');
-        // Reload the page to show the updated list
-        window.location.reload();
+        // Reload the page to show the updated list, with cache busting
+        window.location.href = window.location.pathname + '?nocache=' + Date.now();
       } else {
         console.error('Failed to delete review:', data.message || 'Unknown error');
         alert('Failed to delete review: ' + (data.message || 'Unknown error'));
@@ -85,6 +144,7 @@ function enhanceReviewDeletion() {
       
       // Add visual indication that the button is enhanced
       button.style.position = 'relative';
+      button.style.backgroundColor = '#ff5555';
       
       console.log(`Enhanced delete button for review ID: ${reviewId}`);
     });

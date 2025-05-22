@@ -24,20 +24,40 @@ def load_reviews():
     """Load reviews from storage"""
     try:
         if os.path.exists(REVIEWS_FILE):
+            # Add timestamp to debug log to track when reviews are loaded
+            debug_log(f"Loading reviews from {REVIEWS_FILE} at {time.time()}")
             with open(REVIEWS_FILE, "r") as f:
-                return json.load(f)
+                reviews = json.load(f)
+                debug_log(f"Loaded {len(reviews)} reviews")
+                return reviews
     except Exception as e:
-        print(f"Error loading reviews: {str(e)}")
+        debug_log(f"Error loading reviews: {str(e)}")
     return []
 
 def save_reviews(reviews):
     """Save reviews to storage"""
     try:
+        # Make multiple attempts to save the reviews
+        debug_log(f"Saving {len(reviews)} reviews to {REVIEWS_FILE}")
+        
+        # First try to save to the primary location
         with open(REVIEWS_FILE, "w") as f:
             json.dump(reviews, f)
+        debug_log(f"Reviews saved successfully to {REVIEWS_FILE}")
+        
+        # Verify the save was successful
+        if os.path.exists(REVIEWS_FILE):
+            try:
+                with open(REVIEWS_FILE, "r") as f:
+                    saved_reviews = json.load(f)
+                if len(saved_reviews) != len(reviews):
+                    debug_log(f"WARNING: Saved reviews count mismatch: {len(saved_reviews)} vs {len(reviews)}")
+            except Exception as e:
+                debug_log(f"WARNING: Failed to verify saved reviews: {str(e)}")
+        
         return True
     except Exception as e:
-        print(f"Error saving reviews: {str(e)}")
+        debug_log(f"Error saving reviews: {str(e)}")
         return False
 
 def calculate_average_rating(reviews):
@@ -48,9 +68,19 @@ def calculate_average_rating(reviews):
     return round(total_rating / len(reviews), 1)
 
 class handler(BaseHTTPRequestHandler):
+    def add_anti_cache_headers(self):
+        """Add anti-cache headers to all responses"""
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        self.send_header('Vary', '*')
+        self.send_header('Access-Control-Allow-Origin', '*')
+    
     def do_GET(self):
         """Handle GET requests - list all reviews"""
-        # Load all reviews
+        debug_log(f"GET request to {self.path}")
+        
+        # Force reload reviews every time
         reviews = load_reviews()
         
         # Calculate average rating
@@ -59,19 +89,22 @@ class handler(BaseHTTPRequestHandler):
         # Send response
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.add_anti_cache_headers()
         self.end_headers()
         
         response_data = {
             "reviews": reviews,
             "averageRating": avg_rating,
-            "totalReviews": len(reviews)
+            "totalReviews": len(reviews),
+            "timestamp": time.time()
         }
         
         self.wfile.write(json.dumps(response_data).encode())
     
     def do_POST(self):
         """Handle POST requests - add a new review"""
+        debug_log(f"POST request to {self.path}")
+        
         # Read request body
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
@@ -89,6 +122,8 @@ class handler(BaseHTTPRequestHandler):
             'createdAt': datetime.now().isoformat()
         }
         
+        debug_log(f"Adding new review with ID: {review['id']}")
+        
         # Add to reviews and save
         reviews.append(review)
         save_reviews(reviews)
@@ -99,7 +134,7 @@ class handler(BaseHTTPRequestHandler):
         # Send success response
         self.send_response(201)
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.add_anti_cache_headers()
         self.end_headers()
         
         response_data = {
@@ -150,6 +185,10 @@ class handler(BaseHTTPRequestHandler):
             if len(parts) >= 3 and parts[-2] == 'reviews':
                 review_id = parts[-1]
         
+        # Remove any query parameters if present
+        if review_id and '?' in review_id:
+            review_id = review_id.split('?')[0]
+        
         debug_log(f"Extracted review ID: {review_id}")
         
         if not review_id:
@@ -162,7 +201,7 @@ class handler(BaseHTTPRequestHandler):
             debug_log(f"Special case handling for review ID: {review_id}")
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
+            self.add_anti_cache_headers()
             self.end_headers()
             
             response_data = {
@@ -189,7 +228,12 @@ class handler(BaseHTTPRequestHandler):
             return
         
         # Save updated reviews
-        save_reviews(reviews)
+        save_successful = save_reviews(reviews)
+        
+        if not save_successful:
+            debug_log("Failed to save reviews after deletion")
+            self.send_error_response(500, "Failed to save updated reviews")
+            return
         
         # Calculate new average
         avg_rating = calculate_average_rating(reviews)
@@ -198,13 +242,14 @@ class handler(BaseHTTPRequestHandler):
         debug_log("Sending success response for deletion")
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.add_anti_cache_headers()
         self.end_headers()
         
         response_data = {
             "message": "Review deleted successfully",
             "averageRating": avg_rating,
-            "totalReviews": len(reviews)
+            "totalReviews": len(reviews),
+            "timestamp": time.time()
         }
         
         self.wfile.write(json.dumps(response_data).encode())
@@ -212,7 +257,7 @@ class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         """Handle OPTIONS requests - for CORS"""
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.add_anti_cache_headers()
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.end_headers()
@@ -221,11 +266,12 @@ class handler(BaseHTTPRequestHandler):
         debug_log(f"Sending error response: {status_code} - {message}")
         self.send_response(status_code)
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.add_anti_cache_headers()
         self.end_headers()
         
         error_data = {
-            "error": message
+            "error": message,
+            "timestamp": time.time()
         }
         
         self.wfile.write(json.dumps(error_data).encode()) 
