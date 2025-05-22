@@ -8,7 +8,7 @@ import functools
 app = Flask(__name__)
 CORS(app)
 
-# Simulate a database with JSON files
+# File-based data storage (will be replaced with MongoDB in production)
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 APPOINTMENTS_FILE = os.path.join(DATA_DIR, 'appointments.json')
 REVIEWS_FILE = os.path.join(DATA_DIR, 'reviews.json')
@@ -120,7 +120,11 @@ def get_available_slots(date_str):
 
 @app.route('/')
 def home():
-    return "Vupercuts API is running!"
+    return jsonify({"message": "Vupercuts API is running!"})
+
+@app.route('/api')
+def api_home():
+    return jsonify({"message": "Vupercuts API is running!"})
 
 @app.route('/api/available-slots', methods=['GET'])
 def available_slots():
