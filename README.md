@@ -58,6 +58,21 @@ FLASK_ENV=development
 FLASK_DEBUG=1
 ```
 
+### Admin Access
+
+The website includes an admin panel for managing reviews. To access the admin functionality:
+
+1. Navigate to the Reviews page
+2. Click on the "Admin" link in the top-right corner
+3. Use the following credentials:
+   - Username: `admin`
+   - Password: `vupercuts2024`
+
+As an admin, you can:
+- Delete inappropriate reviews
+- Monitor customer feedback
+- View aggregate ratings
+
 ## Deployment
 
 This project is configured to deploy on Vercel. The `vercel.json` file contains the necessary configuration.

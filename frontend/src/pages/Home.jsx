@@ -25,6 +25,18 @@ const Home = () => {
       0% { transform: translateX(0); }
       100% { transform: translateX(calc(-100% * ${allVideos.length} / ${displayVideos.length})); }
     }
+    
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+      100% { transform: translateY(0px); }
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(106, 44, 176, 0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(106, 44, 176, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(106, 44, 176, 0); }
+    }
   `;
   
   return (
@@ -85,9 +97,34 @@ const Home = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(10, 10, 15, 0.7)', // Darker neutral overlay without blue tint
+            background: 'linear-gradient(135deg, rgba(26, 10, 42, 0.85) 0%, rgba(10, 10, 15, 0.75) 100%)', // Purple gradient overlay
             zIndex: 1
           }}></div>
+          
+          {/* Decorative elements */}
+          <div style={{
+            position: 'absolute',
+            top: '20%',
+            left: '15%',
+            width: '300px',
+            height: '300px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(106, 44, 176, 0.2) 0%, rgba(106, 44, 176, 0) 70%)',
+            zIndex: 2,
+            pointerEvents: 'none',
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            bottom: '15%',
+            right: '10%',
+            width: '250px',
+            height: '250px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(106, 44, 176, 0.15) 0%, rgba(106, 44, 176, 0) 70%)',
+            zIndex: 2,
+            pointerEvents: 'none',
+          }}></div>
+          
           <div className="hero-content container">
             <h1 style={{ 
               fontSize: '4.5rem',
@@ -95,7 +132,9 @@ const Home = () => {
               fontWeight: 'bold',
               letterSpacing: '1px',
               textTransform: 'lowercase',
-              color: 'white'
+              color: 'white',
+              position: 'relative',
+              display: 'inline-block',
             }}>
               vupercuts
             </h1>
@@ -112,8 +151,14 @@ const Home = () => {
               fontSize: '1.1rem',
               marginBottom: '3rem',
               opacity: 0.8,
-              color: 'white'
+              color: 'white',
+              position: 'relative',
+              display: 'inline-block',
+              padding: '0.5rem 1.5rem',
+              background: 'rgba(106, 44, 176, 0.2)',
+              borderRadius: '30px',
             }}>
+              <i className="fas fa-map-marker-alt" style={{ marginRight: '8px', color: 'var(--accent)' }}></i>
               3741 Prosperity Avenue, Fairfax, VA 22031
             </p>
             <div style={{
@@ -122,46 +167,162 @@ const Home = () => {
               gap: '2rem',
             }}>
               <Link to="/book" className="btn btn-accent btn-large" style={{
-                border: '2px solid white',
-              }}>Book an Appointment</Link>
-              <Link to="/reviews" className="btn btn-outline btn-large">See What Others Are Saying</Link>
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                background: 'var(--accent)',
+                boxShadow: '0 8px 20px rgba(0, 0, 0, 0.3)',
+                transition: 'all 0.3s ease',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.boxShadow = '0 12px 25px rgba(0, 0, 0, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.3)';
+              }}>
+                <i className="fas fa-calendar-check" style={{ marginRight: '10px' }}></i>
+                Book an Appointment
+              </Link>
+              <Link to="/reviews" className="btn btn-outline btn-large" style={{
+                border: '2px solid rgba(255, 255, 255, 0.7)',
+                background: 'rgba(255, 255, 255, 0.1)',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              }}>
+                <i className="fas fa-star" style={{ marginRight: '10px', color: 'var(--accent)' }}></i>
+                See What Others Are Saying
+              </Link>
             </div>
           </div>
         </section>
       </div>
 
       {/* About Section */}
-      <section className="section">
+      <section className="section" style={{
+        background: 'linear-gradient(180deg, rgba(106, 44, 176, 0.05) 0%, rgba(255, 255, 255, 0) 100%)',
+        position: 'relative',
+      }}>
+        {/* Decorative accent */}
+        <div style={{
+          position: 'absolute',
+          top: '10%',
+          right: '5%',
+          width: '200px',
+          height: '200px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(106, 44, 176, 0.08) 0%, rgba(106, 44, 176, 0) 70%)',
+          zIndex: 0,
+        }}></div>
+        <div style={{
+          position: 'absolute',
+          bottom: '15%',
+          left: '8%',
+          width: '180px',
+          height: '180px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(106, 44, 176, 0.07) 0%, rgba(106, 44, 176, 0) 70%)',
+          zIndex: 0,
+        }}></div>
+        
         <div className="container">
-          <h2 className="section-title">About vupercuts</h2>
+          <h2 className="section-title" style={{
+            marginBottom: '2.5rem',
+          }}>
+            About vupercuts
+          </h2>
+          
           <div className="about-section">
-            <div className="about-image">
+            <div className="about-image" style={{
+              position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-15px',
+                left: '-15px',
+                width: '80%',
+                height: '80%',
+                background: 'var(--accent)',
+                opacity: 0.1,
+                zIndex: 0,
+                borderRadius: '10px',
+              }}></div>
               <img src="/images/vu.jpeg" 
-                   alt="Vu Tran" />
+                   alt="Vu Tran" 
+                   style={{
+                     borderRadius: '10px',
+                     boxShadow: '0 15px 30px rgba(0, 0, 0, 0.15)',
+                     border: '1px solid rgba(106, 44, 176, 0.2)',
+                     position: 'relative',
+                     zIndex: 1,
+                     transition: 'transform 0.3s ease',
+                   }}
+                   onMouseEnter={(e) => {
+                     e.target.style.transform = 'translateY(-7px) scale(1.02)';
+                   }}
+                   onMouseLeave={(e) => {
+                     e.target.style.transform = 'translateY(0) scale(1)';
+                   }}
+              />
             </div>
             <div className="about-content">
-              <p>
+              <p style={{ 
+                borderLeft: '3px solid var(--accent)', 
+                paddingLeft: '15px',
+                fontSize: '1.05rem',
+                color: '#333',
+              }}>
                 Welcome to vupercuts, where quality meets style. Founded by Vu Tran, 
                 my mission is to provide exceptional haircuts that make you look and feel your best.
               </p>
-              <p>
+              <p style={{ 
+                borderLeft: '3px solid var(--accent)', 
+                paddingLeft: '15px',
+                fontSize: '1.05rem', 
+                color: '#333' 
+              }}>
                 With years of experience and a passion for the craft, I deliver 
                 precision cuts tailored to each individual's unique style and preferences.
                 Want to look fresh? I got you. Want to look like a movie star? No problem. 
                 A good haircut can transform everything.
               </p>
-              <p className="mb-3">
+              <p className="mb-3" style={{ 
+                borderLeft: '3px solid var(--accent)', 
+                paddingLeft: '15px',
+                fontSize: '1.05rem', 
+                color: '#333' 
+              }}>
                 Book your appointment today and experience the vupercuts difference!
               </p>
               <Link to="/book" className="btn" style={{
-                background: 'white',
-                color: 'var(--accent)',
+                background: 'var(--accent)',
+                color: 'white',
                 fontWeight: 'bold',
                 padding: '0.9rem 2rem',
                 fontSize: '1rem',
-                display: 'inline-block',
-                width: 'auto'
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 'auto',
+                boxShadow: '0 8px 15px rgba(106, 44, 176, 0.2)',
+                transition: 'all 0.3s ease',
+                borderRadius: '30px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.boxShadow = '0 12px 20px rgba(106, 44, 176, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 15px rgba(106, 44, 176, 0.2)';
               }}>
+                <i className="fas fa-calendar-alt" style={{ marginRight: '10px' }}></i>
                 Book Now
               </Link>
             </div>
@@ -170,46 +331,224 @@ const Home = () => {
       </section>
 
       {/* Services Section */}
-      <section className="section services-section">
+      <section className="section services-section" style={{
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Decorative accent */}
+        <div style={{
+          position: 'absolute',
+          top: '15%',
+          left: '5%',
+          width: '250px',
+          height: '250px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(106, 44, 176, 0.05) 0%, rgba(106, 44, 176, 0) 70%)',
+          zIndex: 0,
+        }}></div>
+        <div style={{
+          position: 'absolute',
+          bottom: '20%',
+          right: '10%',
+          width: '200px',
+          height: '200px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(106, 44, 176, 0.06) 0%, rgba(106, 44, 176, 0) 70%)',
+          zIndex: 0,
+        }}></div>
+        
         <div className="container">
-          <h2 className="section-title">Our Services</h2>
+          <h2 className="section-title" style={{
+            marginBottom: '2.5rem',
+          }}>
+            Our Services
+          </h2>
+          
           <div className="services-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
             gap: '2.5rem',
             marginTop: '3rem',
           }}>
-            <div className="service-card">
-              <img 
-                src="/images/example.jpeg" 
-                alt="Men's Haircut" 
-                className="service-img"
-              />
-              <div className="service-content">
-                <h3 className="service-title">Men's Haircuts</h3>
-                <p className="mb-0">Precision cuts tailored to your style and face shape. Every cut includes a consultation to understand your preferences.</p>
+            <div className="service-card" style={{
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+              border: '1px solid rgba(106, 44, 176, 0.1)',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-10px)';
+              e.currentTarget.style.boxShadow = '0 15px 35px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.1)';
+            }}>
+              <div style={{ position: 'relative', overflow: 'hidden' }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '15px',
+                  left: '15px',
+                  background: 'var(--accent)',
+                  color: 'white',
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
+                  zIndex: 1,
+                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+                }}>
+                  Popular
+                </div>
+                <img 
+                  src="/images/example.jpeg" 
+                  alt="Men's Haircut" 
+                  className="service-img"
+                  style={{
+                    transition: 'transform 0.5s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'scale(1)';
+                  }}
+                />
+              </div>
+              <div className="service-content" style={{
+                padding: '1.5rem',
+                background: 'white',
+              }}>
+                <h3 className="service-title" style={{
+                  color: 'var(--primary)',
+                  fontSize: '1.3rem',
+                  marginBottom: '1rem',
+                  position: 'relative',
+                  paddingBottom: '10px',
+                }}>
+                  Men's Haircuts
+                  <span style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '40px',
+                    height: '3px',
+                    background: 'var(--accent)',
+                    borderRadius: '3px',
+                  }}></span>
+                </h3>
+                <p className="mb-0" style={{ color: '#555' }}>Precision cuts tailored to your style and face shape. Every cut includes a consultation to understand your preferences.</p>
               </div>
             </div>
-            <div className="service-card">
+            
+            <div className="service-card" style={{
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+              border: '1px solid rgba(106, 44, 176, 0.1)',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-10px)';
+              e.currentTarget.style.boxShadow = '0 15px 35px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.1)';
+            }}>
               <img 
                 src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80" 
                 alt="Filmed Content" 
                 className="service-img"
+                style={{
+                  transition: 'transform 0.5s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'scale(1)';
+                }}
               />
-              <div className="service-content">
-                <h3 className="service-title">Filmed Content</h3>
-                <p className="mb-0">Watch your transformation journey! Vu regularly posts before and after results on his social media channels, showcasing his artistry and clientele satisfaction.</p>
+              <div className="service-content" style={{
+                padding: '1.5rem',
+                background: 'white',
+              }}>
+                <h3 className="service-title" style={{
+                  color: 'var(--primary)',
+                  fontSize: '1.3rem',
+                  marginBottom: '1rem',
+                  position: 'relative',
+                  paddingBottom: '10px',
+                }}>
+                  Filmed Content
+                  <span style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '40px',
+                    height: '3px',
+                    background: 'var(--accent)',
+                    borderRadius: '3px',
+                  }}></span>
+                </h3>
+                <p className="mb-0" style={{ color: '#555' }}>Watch your transformation journey! Vu regularly posts before and after results on his social media channels, showcasing his artistry and clientele satisfaction.</p>
               </div>
             </div>
-            <div className="service-card">
+            
+            <div className="service-card" style={{
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+              border: '1px solid rgba(106, 44, 176, 0.1)',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-10px)';
+              e.currentTarget.style.boxShadow = '0 15px 35px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.1)';
+            }}>
               <img 
                 src="/images/example2.jpg" 
                 alt="Light Trim" 
                 className="service-img"
+                style={{
+                  transition: 'transform 0.5s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'scale(1)';
+                }}
               />
-              <div className="service-content">
-                <h3 className="service-title">Light Trims</h3>
-                <p className="mb-0">Need just a touch-up? Vu also specializes in light trims to maintain your current style and keep you looking fresh between full haircuts.</p>
+              <div className="service-content" style={{
+                padding: '1.5rem',
+                background: 'white',
+              }}>
+                <h3 className="service-title" style={{
+                  color: 'var(--primary)',
+                  fontSize: '1.3rem',
+                  marginBottom: '1rem',
+                  position: 'relative',
+                  paddingBottom: '10px',
+                }}>
+                  Light Trims
+                  <span style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '40px',
+                    height: '3px',
+                    background: 'var(--accent)',
+                    borderRadius: '3px',
+                  }}></span>
+                </h3>
+                <p className="mb-0" style={{ color: '#555' }}>Need just a touch-up? Vu also specializes in light trims to maintain your current style and keep you looking fresh between full haircuts.</p>
               </div>
             </div>
           </div>
@@ -219,18 +558,44 @@ const Home = () => {
       {/* Social Media Section */}
       <section className="full-width">
         <div style={{
-          background: 'linear-gradient(45deg, #833AB4, #FD1D1D, #FCAF45)',
+          background: 'linear-gradient(45deg, #6A2CB0, #833AB4, #C13584)',
           padding: '5rem 0',
           color: 'white',
           textAlign: 'left',
+          position: 'relative',
+          overflow: 'hidden',
         }}>
+          {/* Decorative elements */}
+          <div style={{
+            position: 'absolute',
+            top: '10%',
+            left: '5%',
+            width: '300px',
+            height: '300px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%)',
+            zIndex: 0,
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            bottom: '10%',
+            right: '8%',
+            width: '250px',
+            height: '250px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 70%)',
+            zIndex: 0,
+          }}></div>
+          
           <div className="container" style={{ 
             display: 'flex',
             flexDirection: 'row',
             flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '2rem'
+            gap: '2rem',
+            position: 'relative',
+            zIndex: 1,
           }}>
             {/* Left side - Text content */}
             <div style={{
@@ -238,16 +603,38 @@ const Home = () => {
               minWidth: '300px',
               maxWidth: '500px',
             }}>
+              <div style={{
+                width: '80px',
+                height: '4px',
+                background: 'white',
+                marginBottom: '1.5rem',
+                borderRadius: '2px',
+              }}></div>
+              
               <h2 style={{ 
                 fontSize: '2.5rem',
                 marginBottom: '2rem',
                 fontWeight: 'bold',
-                color: 'white'
-              }}>Follow Our Transformations</h2>
+                color: 'white',
+                position: 'relative',
+                paddingBottom: '15px',
+              }}>
+                Follow Our Transformations
+                <span style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  width: '70px',
+                  height: '3px',
+                  background: 'white',
+                  borderRadius: '3px',
+                }}></span>
+              </h2>
               
               <p style={{ 
                 fontSize: '1.2rem',
                 marginBottom: '2rem',
+                lineHeight: '1.7',
               }}>
                 Check out Vu's latest haircut transformations on Instagram. Follow us for style inspiration and to see real results!
               </p>
@@ -273,6 +660,17 @@ const Home = () => {
                     display: 'inline-flex',
                     alignItems: 'center',
                     boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-5px)';
+                    e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.25)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)';
                   }}>
                   <i className="fab fa-instagram" style={{ marginRight: '10px' }}></i>
                   Instagram
@@ -293,6 +691,15 @@ const Home = () => {
                     display: 'inline-flex',
                     alignItems: 'center',
                     boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-5px)';
+                    e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.25)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)';
                   }}>
                   <i className="fab fa-tiktok" style={{ marginRight: '10px' }}></i>
                   TikTok
@@ -412,7 +819,8 @@ const Home = () => {
                 padding: '0',
                 border: '4px solid #222',
                 overflow: 'hidden',
-                zIndex: 1
+                zIndex: 1,
+                animation: 'float 6s ease-in-out infinite',
               }}>
                 {/* Phone Screen - image displayed as content */}
                 <img 

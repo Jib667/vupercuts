@@ -3,6 +3,7 @@ from flask_cors import CORS
 import json
 import os
 from datetime import datetime, timedelta
+import functools
 
 app = Flask(__name__)
 CORS(app)
@@ -11,6 +12,7 @@ CORS(app)
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 APPOINTMENTS_FILE = os.path.join(DATA_DIR, 'appointments.json')
 REVIEWS_FILE = os.path.join(DATA_DIR, 'reviews.json')
+ADMIN_CREDENTIALS_FILE = os.path.join(DATA_DIR, 'admin.json')
 
 # Ensure data directory exists
 if not os.path.exists(DATA_DIR):
@@ -24,6 +26,40 @@ if not os.path.exists(APPOINTMENTS_FILE):
 if not os.path.exists(REVIEWS_FILE):
     with open(REVIEWS_FILE, 'w') as f:
         json.dump([], f)
+
+# Create admin credentials file with default username and password if it doesn't exist
+if not os.path.exists(ADMIN_CREDENTIALS_FILE):
+    with open(ADMIN_CREDENTIALS_FILE, 'w') as f:
+        # Default credentials - in production, use a more secure approach
+        json.dump({"username": "admin", "password": "vupercuts2024"}, f)
+
+def get_admin_credentials():
+    with open(ADMIN_CREDENTIALS_FILE, 'r') as f:
+        return json.load(f)
+
+def require_admin_auth(f):
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Basic '):
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        try:
+            # Extract and check credentials
+            import base64
+            encoded_credentials = auth_header[6:]  # Remove 'Basic '
+            decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
+            username, password = decoded_credentials.split(':')
+            
+            admin_credentials = get_admin_credentials()
+            if username != admin_credentials['username'] or password != admin_credentials['password']:
+                return jsonify({"error": "Invalid credentials"}), 401
+            
+            return f(*args, **kwargs)
+        except Exception as e:
+            return jsonify({"error": f"Authentication error: {str(e)}"}), 401
+    
+    return decorated
 
 def get_appointments():
     try:
@@ -46,6 +82,14 @@ def get_reviews():
 def save_reviews(reviews):
     with open(REVIEWS_FILE, 'w') as f:
         json.dump(reviews, f)
+
+def calculate_average_rating():
+    reviews = get_reviews()
+    if not reviews:
+        return 0
+    
+    total_rating = sum(review['rating'] for review in reviews)
+    return round(total_rating / len(reviews), 1)
 
 # Generate available time slots
 def get_available_slots(date_str):
@@ -122,7 +166,13 @@ def appointments():
 @app.route('/api/reviews', methods=['GET', 'POST'])
 def reviews():
     if request.method == 'GET':
-        return jsonify(get_reviews())
+        reviews_data = get_reviews()
+        avg_rating = calculate_average_rating()
+        return jsonify({
+            "reviews": reviews_data,
+            "averageRating": avg_rating,
+            "totalReviews": len(reviews_data)
+        })
     
     elif request.method == 'POST':
         data = request.json
@@ -143,7 +193,42 @@ def reviews():
         reviews.append(review)
         save_reviews(reviews)
         
-        return jsonify(review), 201
+        # Return updated average rating along with the new review
+        avg_rating = calculate_average_rating()
+        return jsonify({
+            "review": review,
+            "averageRating": avg_rating,
+            "totalReviews": len(reviews)
+        }), 201
+
+@app.route('/api/reviews/<review_id>', methods=['DELETE'])
+@require_admin_auth
+def delete_review(review_id):
+    reviews = get_reviews()
+    initial_count = len(reviews)
+    
+    # Filter out the review to be deleted
+    filtered_reviews = [review for review in reviews if review['id'] != review_id]
+    
+    if len(filtered_reviews) == initial_count:
+        return jsonify({"error": "Review not found"}), 404
+    
+    # Save updated reviews
+    save_reviews(filtered_reviews)
+    
+    # Return updated average rating
+    avg_rating = calculate_average_rating() if filtered_reviews else 0
+    
+    return jsonify({
+        "message": "Review deleted successfully",
+        "averageRating": avg_rating,
+        "totalReviews": len(filtered_reviews)
+    })
+
+@app.route('/api/admin/verify', methods=['GET'])
+@require_admin_auth
+def verify_admin():
+    return jsonify({"status": "authenticated", "message": "Admin authentication successful"})
 
 if __name__ == '__main__':
     app.run(debug=True) 

@@ -168,7 +168,7 @@ const Footer = () => {
         margin: '2rem auto 0',
         padding: '2rem 2rem 0',
       }}>
-        <p style={{ opacity: '0.7', color: 'white' }}>&copy; {currentYear} vupercuts. All rights reserved.</p>
+        <p style={{ opacity: '0.7', color: 'white' }}>&copy; {currentYear} vupercuts. All rights reserved. Website created by Jibran Hutchins</p>
       </div>
     </footer>
   )
