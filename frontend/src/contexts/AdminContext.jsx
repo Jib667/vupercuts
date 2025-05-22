@@ -32,18 +32,22 @@ export const AdminProvider = ({ children }) => {
       const authString = `${username}:${password}`
       const encodedAuth = btoa(authString)
       
+      console.log('Verifying admin with credentials:', username)
+      
       await axios.get(`${API_URL}/admin/verify`, {
         headers: {
           'Authorization': `Basic ${encodedAuth}`
         }
       })
       
+      console.log('Admin verification successful')
       setIsAdmin(true)
       setAdminUsername(username)
       setAdminPassword(password)
       
       return true
     } catch (err) {
+      console.error('Admin verification failed:', err)
       setIsAdmin(false)
       localStorage.removeItem('vupercutsAdminAuth')
       throw err
@@ -75,8 +79,12 @@ export const AdminProvider = ({ children }) => {
   }
   
   const getAuthHeaders = () => {
-    if (!isAdmin) return {}
+    if (!isAdmin) {
+      console.warn('Attempting to get auth headers but not logged in as admin')
+      return {}
+    }
     
+    console.log('Creating auth headers for admin:', adminUsername)
     const authString = `${adminUsername}:${adminPassword}`
     const encodedAuth = btoa(authString)
     

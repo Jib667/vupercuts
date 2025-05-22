@@ -8,8 +8,13 @@ import functools
 app = Flask(__name__)
 CORS(app)
 
-# File-based data storage (will be replaced with MongoDB in production)
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+# File-based data storage with path that works in both local and Vercel environments
+# In Vercel, we need to use the /tmp directory for writable storage
+if os.environ.get('VERCEL_ENV'):
+    DATA_DIR = '/tmp'
+else:
+    DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
 APPOINTMENTS_FILE = os.path.join(DATA_DIR, 'appointments.json')
 REVIEWS_FILE = os.path.join(DATA_DIR, 'reviews.json')
 ADMIN_CREDENTIALS_FILE = os.path.join(DATA_DIR, 'admin.json')
@@ -30,8 +35,10 @@ if not os.path.exists(REVIEWS_FILE):
 # Create admin credentials file with default username and password if it doesn't exist
 if not os.path.exists(ADMIN_CREDENTIALS_FILE):
     with open(ADMIN_CREDENTIALS_FILE, 'w') as f:
-        # Default credentials - in production, use a more secure approach
-        json.dump({"username": "admin", "password": "vupercuts2024"}, f)
+        # Default credentials - in production, use environment variables
+        admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
+        admin_password = os.environ.get('ADMIN_PASSWORD', 'vupercuts2024')
+        json.dump({"username": admin_username, "password": admin_password}, f)
 
 def get_admin_credentials():
     with open(ADMIN_CREDENTIALS_FILE, 'r') as f:
@@ -40,8 +47,10 @@ def get_admin_credentials():
 def require_admin_auth(f):
     @functools.wraps(f)
     def decorated(*args, **kwargs):
+        print(f"Request headers: {request.headers}")
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Basic '):
+            print("Missing or invalid Authorization header")
             return jsonify({"error": "Unauthorized"}), 401
         
         try:
@@ -51,12 +60,17 @@ def require_admin_auth(f):
             decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
             username, password = decoded_credentials.split(':')
             
+            print(f"Received auth for username: {username}")
             admin_credentials = get_admin_credentials()
+            
             if username != admin_credentials['username'] or password != admin_credentials['password']:
+                print(f"Invalid credentials. Expected username: {admin_credentials['username']}")
                 return jsonify({"error": "Invalid credentials"}), 401
             
+            print("Admin authentication successful")
             return f(*args, **kwargs)
         except Exception as e:
+            print(f"Authentication error: {str(e)}")
             return jsonify({"error": f"Authentication error: {str(e)}"}), 401
     
     return decorated
@@ -208,6 +222,7 @@ def reviews():
 @app.route('/api/reviews/<review_id>', methods=['DELETE'])
 @require_admin_auth
 def delete_review(review_id):
+    print(f"Attempting to delete review with ID: {review_id}")
     reviews = get_reviews()
     initial_count = len(reviews)
     
@@ -215,9 +230,11 @@ def delete_review(review_id):
     filtered_reviews = [review for review in reviews if review['id'] != review_id]
     
     if len(filtered_reviews) == initial_count:
+        print(f"Review not found with ID: {review_id}")
         return jsonify({"error": "Review not found"}), 404
     
     # Save updated reviews
+    print(f"Deleting review. Count before: {initial_count}, after: {len(filtered_reviews)}")
     save_reviews(filtered_reviews)
     
     # Return updated average rating

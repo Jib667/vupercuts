@@ -1,70 +1,45 @@
-from http.server import BaseHTTPRequestHandler
-import json
+from flask import Flask, request, jsonify
+import sys
 import os
-from datetime import datetime
+import logging
 
-# Simple in-memory database for the demo
-reviews = []
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.info("Initializing Vercel serverless function")
 
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        
-        # Return all reviews
-        response = {
-            "reviews": reviews,
-            "averageRating": self._calculate_average() if reviews else 0,
-            "totalReviews": len(reviews)
-        }
-        
-        self.wfile.write(json.dumps(response).encode())
-        return
+# Log the current directory and Python path
+logger.info(f"Current directory: {os.getcwd()}")
+logger.info(f"Python path: {sys.path}")
+
+try:
+    # Add the backend directory to the Python path so we can import from it
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    logger.info(f"Updated Python path: {sys.path}")
     
-    def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        data = json.loads(post_data.decode('utf-8'))
-        
-        # Create new review
-        review = {
-            'id': str(datetime.now().timestamp()),
-            'name': data.get('name', 'Anonymous'),
-            'text': data.get('text', ''),
-            'rating': data.get('rating', 5),
-            'createdAt': datetime.now().isoformat()
-        }
-        
-        # Add to our "database"
-        reviews.append(review)
-        
-        # Return response
-        self.send_response(201)
-        self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        
-        response = {
-            "review": review,
-            "averageRating": self._calculate_average(),
-            "totalReviews": len(reviews)
-        }
-        
-        self.wfile.write(json.dumps(response).encode())
-        return
+    # Import the Flask app from backend/app.py
+    from backend.app import app
+    logger.info("Successfully imported Flask app")
     
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-        return
+    # This is the entry point for Vercel serverless functions
+    # No need to run app.run() as Vercel will handle that
     
-    def _calculate_average(self):
-        if not reviews:
-            return 0
-        total = sum(review['rating'] for review in reviews)
-        return round(total / len(reviews), 1) 
+    # Export the app for Vercel
+    app = app
+    
+except Exception as e:
+    logger.error(f"Error initializing serverless function: {str(e)}")
+    
+    # Create a fallback app if the import fails
+    fallback_app = Flask(__name__)
+    
+    @fallback_app.route('/', defaults={'path': ''})
+    @fallback_app.route('/<path:path>')
+    def catch_all(path):
+        return jsonify({
+            "error": "API initialization failed",
+            "message": str(e),
+            "path": path
+        }), 500
+    
+    app = fallback_app 

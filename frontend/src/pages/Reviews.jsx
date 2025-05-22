@@ -125,8 +125,12 @@ const Reviews = () => {
     }
     
     try {
+      console.log('Getting auth headers')
       const authHeaders = getAuthHeaders()
+      console.log('Attempting to delete review with ID:', reviewId)
+      
       const response = await ReviewsService.deleteReview(reviewId, authHeaders)
+      console.log('Delete successful, response:', response)
       
       // Update local state
       setReviews(reviews.filter(review => review.id !== reviewId))
@@ -135,6 +139,12 @@ const Reviews = () => {
       
     } catch (err) {
       console.error('Error deleting review:', err)
+      console.error('Error details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        headers: err.response?.headers
+      })
+      
       if (err.response && err.response.status === 401) {
         alert('Admin session expired. Please log in again.')
       } else {
