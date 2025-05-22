@@ -1,10 +1,10 @@
-from flask import Flask, Response, jsonify
 from http.server import BaseHTTPRequestHandler
 import json
 import os
 import base64
 import re
 import logging
+import traceback
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,19 +29,27 @@ def get_admin_credentials():
 def get_reviews():
     try:
         if not os.path.exists(REVIEWS_FILE):
+            logger.info(f"Reviews file not found at {REVIEWS_FILE}")
             return []
         with open(REVIEWS_FILE, 'r') as f:
-            return json.load(f)
-    except:
+            data = json.load(f)
+            logger.info(f"Loaded {len(data)} reviews from file")
+            return data
+    except Exception as e:
+        logger.error(f"Error reading reviews: {str(e)}")
         return []
 
 def save_reviews(reviews):
     # Ensure directory exists
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
-    
-    with open(REVIEWS_FILE, 'w') as f:
-        json.dump(reviews, f)
+    try:
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR)
+        
+        with open(REVIEWS_FILE, 'w') as f:
+            json.dump(reviews, f)
+        logger.info(f"Saved {len(reviews)} reviews to file")
+    except Exception as e:
+        logger.error(f"Error saving reviews: {str(e)}")
 
 def calculate_average_rating(reviews):
     if not reviews:
@@ -84,21 +92,23 @@ class handler(BaseHTTPRequestHandler):
                 return
             
             # Extract review ID from path
-            match = re.search(r'/api/reviews/([^/]+)', self.path)
-            if not match:
-                logger.error(f"Invalid path: {self.path}")
+            # Simpler path extraction - just get the last part of the URL
+            path_parts = self.path.strip('/').split('/')
+            if len(path_parts) < 3:
+                logger.error(f"Invalid path format: {self.path}, parts: {path_parts}")
                 self.send_error_response(400, "Invalid request path")
                 return
             
-            review_id = match.group(1)
-            logger.info(f"Attempting to delete review with ID: {review_id}")
+            review_id = path_parts[-1]
+            logger.info(f"Extracted review ID: {review_id} from path: {self.path}")
             
             # Get reviews and delete the requested one
             reviews = get_reviews()
+            logger.info(f"Current reviews: {reviews}")
             initial_count = len(reviews)
             
             # Filter out the review to be deleted
-            filtered_reviews = [review for review in reviews if review.get('id') != review_id]
+            filtered_reviews = [review for review in reviews if str(review.get('id')) != str(review_id)]
             
             if len(filtered_reviews) == initial_count:
                 logger.error(f"Review not found with ID: {review_id}")
@@ -128,6 +138,7 @@ class handler(BaseHTTPRequestHandler):
             
         except Exception as e:
             logger.error(f"Error deleting review: {str(e)}")
+            logger.error(traceback.format_exc())
             self.send_error_response(500, f"Server error: {str(e)}")
     
     def send_error_response(self, status_code, message):

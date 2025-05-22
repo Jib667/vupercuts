@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 import os
 import logging
+import traceback
 from datetime import datetime
 
 # Configure logging
@@ -15,20 +16,38 @@ REVIEWS_FILE = os.path.join(DATA_DIR, 'reviews.json')
 def get_reviews():
     try:
         if not os.path.exists(REVIEWS_FILE):
+            logger.info(f"Reviews file not found at {REVIEWS_FILE}")
+            # Create empty reviews file
+            if not os.path.exists(DATA_DIR):
+                os.makedirs(DATA_DIR)
+            with open(REVIEWS_FILE, 'w') as f:
+                json.dump([], f)
+            logger.info(f"Created empty reviews file at {REVIEWS_FILE}")
             return []
+        
         with open(REVIEWS_FILE, 'r') as f:
-            return json.load(f)
+            data = json.load(f)
+            logger.info(f"Loaded {len(data)} reviews from file")
+            return data
     except Exception as e:
-        logger.error(f"Error reading reviews file: {str(e)}")
+        logger.error(f"Error reading reviews: {str(e)}")
+        logger.error(traceback.format_exc())
         return []
 
 def save_reviews(reviews):
     # Ensure directory exists
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
-    
-    with open(REVIEWS_FILE, 'w') as f:
-        json.dump(reviews, f)
+    try:
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR)
+        
+        with open(REVIEWS_FILE, 'w') as f:
+            json.dump(reviews, f)
+        logger.info(f"Saved {len(reviews)} reviews to file")
+        return True
+    except Exception as e:
+        logger.error(f"Error saving reviews: {str(e)}")
+        logger.error(traceback.format_exc())
+        return False
 
 def calculate_average_rating(reviews):
     if not reviews:
@@ -62,6 +81,7 @@ class handler(BaseHTTPRequestHandler):
             
         except Exception as e:
             logger.error(f"Error in GET request: {str(e)}")
+            logger.error(traceback.format_exc())
             self.send_error_response(500, f"Server error: {str(e)}")
     
     def do_POST(self):
@@ -92,7 +112,11 @@ class handler(BaseHTTPRequestHandler):
             # Save to "database"
             reviews = get_reviews()
             reviews.append(review)
-            save_reviews(reviews)
+            
+            if not save_reviews(reviews):
+                logger.error("Failed to save reviews")
+                self.send_error_response(500, "Failed to save review")
+                return
             
             logger.info(f"Saved new review with ID: {review['id']}")
             
@@ -114,13 +138,14 @@ class handler(BaseHTTPRequestHandler):
             
         except Exception as e:
             logger.error(f"Error in POST request: {str(e)}")
+            logger.error(traceback.format_exc())
             self.send_error_response(500, f"Server error: {str(e)}")
     
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.end_headers()
     
     def send_error_response(self, status_code, message):

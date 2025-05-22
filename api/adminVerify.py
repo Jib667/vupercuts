@@ -3,6 +3,7 @@ import json
 import os
 import base64
 import logging
+import traceback
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,12 +16,17 @@ ADMIN_CREDENTIALS_FILE = os.path.join(DATA_DIR, 'admin.json')
 def get_admin_credentials():
     # Default credentials if file doesn't exist
     if not os.path.exists(ADMIN_CREDENTIALS_FILE):
+        logger.info(f"Admin credentials file not found at {ADMIN_CREDENTIALS_FILE}, using defaults")
         return {"username": "admin", "password": "vupercuts2024"}
     
     try:
         with open(ADMIN_CREDENTIALS_FILE, 'r') as f:
-            return json.load(f)
-    except:
+            credentials = json.load(f)
+            logger.info(f"Loaded admin credentials for user: {credentials.get('username')}")
+            return credentials
+    except Exception as e:
+        logger.error(f"Error reading admin credentials: {str(e)}")
+        logger.error(traceback.format_exc())
         return {"username": "admin", "password": "vupercuts2024"}
 
 class handler(BaseHTTPRequestHandler):
@@ -66,6 +72,7 @@ class handler(BaseHTTPRequestHandler):
             
         except Exception as e:
             logger.error(f"Authentication error: {str(e)}")
+            logger.error(traceback.format_exc())
             self.send_error_response(500, f"Server error: {str(e)}")
     
     def do_OPTIONS(self):

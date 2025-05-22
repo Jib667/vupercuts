@@ -1,6 +1,7 @@
 {
   "version": 2,
   "routes": [
+    { "src": "/api/test", "methods": ["GET"], "dest": "/api/test.py" },
     { "src": "/api/reviews/([^/]+)", "methods": ["DELETE", "OPTIONS"], "dest": "/api/deleteReview.py" },
     { "src": "/api/reviews", "methods": ["GET", "POST", "OPTIONS"], "dest": "/api/reviews.py" },
     { "src": "/api/admin/verify", "methods": ["GET", "OPTIONS"], "dest": "/api/adminVerify.py" },
