@@ -83,23 +83,46 @@ As an admin, you can:
 #### Using the Command Line
 You can also delete reviews directly from the command line:
 
-1. First, get the review ID:
-   ```
-   # Option 1: View network requests in browser DevTools
-   # Option 2: Run this command to list all reviews with their IDs
-   curl -s "https://vupercuts.vercel.app/api/reviews" | grep -o '"id":"[^"]*"'
+1. First, get the review ID by listing all reviews:
+   ```bash
+   # This will show all reviews with their IDs
+   curl "https://vupercuts.vercel.app/api/reviews" | grep -o '"id":"[^"]*"'
    ```
 
-2. Delete the review using curl:
-   ```
+2. Delete a specific review by ID (replace YOUR_REVIEW_ID with the actual ID):
+   ```bash
+   # Basic deletion without admin authentication
    curl -X DELETE "https://vupercuts.vercel.app/api/reviews/YOUR_REVIEW_ID"
+   
+   # For more reliable deletion with admin authentication
+   curl -X DELETE "https://vupercuts.vercel.app/api/reviews/YOUR_REVIEW_ID" \
+     -H "Authorization: Basic $(echo -n 'admin:vupercuts2024' | base64)"
    ```
 
-3. For convenience, you can create a shell script:
-   ```
-   echo 'curl -X DELETE "https://vupercuts.vercel.app/api/reviews/$1"' > delete_review.sh
+3. For convenience, create this reusable shell script:
+   ```bash
+   # Create the script
+   echo '#!/bin/bash
+   REVIEW_ID=$1
+   if [ -z "$REVIEW_ID" ]; then
+     echo "Usage: ./delete_review.sh REVIEW_ID"
+     exit 1
+   fi
+   curl -X DELETE "https://vupercuts.vercel.app/api/reviews/$REVIEW_ID" \
+     -H "Authorization: Basic $(echo -n admin:vupercuts2024 | base64)" \
+     -H "Content-Type: application/json"
+   ' > delete_review.sh
+   
+   # Make it executable
    chmod +x delete_review.sh
+   
+   # Use it
    ./delete_review.sh YOUR_REVIEW_ID
+   ```
+
+4. Emergency option - clear all reviews at once:
+   ```bash
+   curl "https://vupercuts.vercel.app/api/clear-reviews"
    ```
 
 ## Deployment

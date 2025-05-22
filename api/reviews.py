@@ -6,64 +6,42 @@ import re
 import os
 from datetime import datetime
 
-# Try multiple possible storage locations
-STORAGE_DIRS = [
-    "/tmp",            # Standard temp directory
-    "/var/task/tmp",   # Vercel specific location
-    ".",               # Current directory
-]
-
-# Find a writable directory
-for dir_path in STORAGE_DIRS:
-    if os.path.exists(dir_path) and os.access(dir_path, os.W_OK):
-        STORAGE_DIR = dir_path
-        break
-else:
-    STORAGE_DIR = "/tmp"  # Default fallback
-
-REVIEWS_FILE = os.path.join(STORAGE_DIR, "reviews.json")
-DEBUG_FILE = os.path.join(STORAGE_DIR, "debug.log")
+# Store reviews in a consistent location
+REVIEWS_FILE = "/tmp/vupercuts_reviews.json"
 
 # Admin credentials
 ADMIN_CREDENTIALS = {"username": "admin", "password": "vupercuts2024"}
 
 def debug_log(message):
     try:
-        with open(DEBUG_FILE, "a") as f:
+        with open("/tmp/debug.log", "a") as f:
             f.write(f"{datetime.now().isoformat()} - {message}\n")
     except Exception as e:
         # If we can't write to the log file, there's not much we can do
         pass
 
 def load_reviews():
-    """Load reviews from file storage"""
+    """Load reviews from storage"""
     try:
         if os.path.exists(REVIEWS_FILE):
             with open(REVIEWS_FILE, "r") as f:
-                reviews = json.load(f)
-                debug_log(f"Loaded {len(reviews)} reviews from file")
-                return reviews
+                return json.load(f)
     except Exception as e:
-        debug_log(f"Error loading reviews: {str(e)}")
-    
-    debug_log("Initializing empty reviews")
+        print(f"Error loading reviews: {str(e)}")
     return []
 
 def save_reviews(reviews):
-    """Save reviews to file storage"""
+    """Save reviews to storage"""
     try:
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(REVIEWS_FILE), exist_ok=True)
-        
         with open(REVIEWS_FILE, "w") as f:
             json.dump(reviews, f)
-        debug_log(f"Saved {len(reviews)} reviews to file")
         return True
     except Exception as e:
-        debug_log(f"Error saving reviews: {str(e)}")
+        print(f"Error saving reviews: {str(e)}")
         return False
 
 def calculate_average_rating(reviews):
+    """Calculate average rating from reviews"""
     if not reviews:
         return 0
     total_rating = sum(review.get('rating', 0) for review in reviews)
@@ -71,18 +49,18 @@ def calculate_average_rating(reviews):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        debug_log(f"GET request to {self.path}")
-        
-        # Load reviews from file
+        """Handle GET requests - list all reviews"""
+        # Load all reviews
         reviews = load_reviews()
-        debug_log(f"Loaded reviews for GET: {len(reviews)}")
         
+        # Calculate average rating
+        avg_rating = calculate_average_rating(reviews)
+        
+        # Send response
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-        
-        avg_rating = calculate_average_rating(reviews)
         
         response_data = {
             "reviews": reviews,
@@ -93,95 +71,32 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response_data).encode())
     
     def do_POST(self):
-        debug_log(f"POST request to {self.path}")
-        
+        """Handle POST requests - add a new review"""
+        # Read request body
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data.decode('utf-8'))
         
-        debug_log(f"POST data: {data}")
-        
-        # Load current reviews
+        # Load existing reviews
         reviews = load_reviews()
-        debug_log(f"Loaded reviews for POST: {len(reviews)}")
         
-        # Check if this is a delete action
-        if data.get('action') == 'delete':
-            # Verify admin authentication for delete action
-            auth_header = self.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Basic '):
-                self.send_error_response(401, "Unauthorized")
-                return
-            
-            # Extract and check credentials
-            encoded_credentials = auth_header[6:]  # Remove 'Basic '
-            decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
-            username, password = decoded_credentials.split(':')
-            
-            if username != ADMIN_CREDENTIALS["username"] or password != ADMIN_CREDENTIALS["password"]:
-                self.send_error_response(401, "Invalid credentials")
-                return
-            
-            # Get review ID to delete
-            review_id = data.get('id')
-            if not review_id:
-                self.send_error_response(400, "Missing review ID")
-                return
-            
-            debug_log(f"Attempting to delete review ID: {review_id}")
-            
-            # Find and remove the review
-            initial_length = len(reviews)
-            reviews = [r for r in reviews if str(r.get('id')) != str(review_id)]
-            
-            if len(reviews) == initial_length:
-                debug_log(f"Review with ID {review_id} not found")
-                self.send_error_response(404, "Review not found")
-                return
-            
-            # Save updated reviews
-            save_reviews(reviews)
-            
-            # Calculate new average
-            avg_rating = calculate_average_rating(reviews)
-            
-            # Send success response
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            
-            response_data = {
-                "message": "Review deleted successfully",
-                "averageRating": avg_rating,
-                "totalReviews": len(reviews)
-            }
-            
-            self.wfile.write(json.dumps(response_data).encode())
-            return
-        
-        # Otherwise, this is a regular add review action
         # Create a new review
         review = {
             'id': str(time.time()),
             'name': data.get('name', ''),
             'text': data.get('text', ''),
-            'rating': data.get('rating', 5),
+            'rating': int(data.get('rating', 5)),
             'createdAt': datetime.now().isoformat()
         }
         
-        debug_log(f"Adding new review: {review}")
-        
-        # Add to reviews list
+        # Add to reviews and save
         reviews.append(review)
-        
-        # Save updated reviews
         save_reviews(reviews)
         
-        debug_log(f"Current reviews after addition: {len(reviews)}")
-        
+        # Calculate new average rating
         avg_rating = calculate_average_rating(reviews)
         
+        # Send success response
         self.send_response(201)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -295,7 +210,7 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response_data).encode())
     
     def do_OPTIONS(self):
-        debug_log(f"OPTIONS request to {self.path}")
+        """Handle OPTIONS requests - for CORS"""
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')

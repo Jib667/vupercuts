@@ -7,6 +7,7 @@
     { "source": "/api/reviews/:id", "destination": "/api/deleteReview.py" },
     { "source": "/api/reviews", "destination": "/api/reviews.py" },
     { "source": "/api/admin/verify", "destination": "/api/adminVerify.py" },
+    { "source": "/api/clear-reviews", "destination": "/api/clearReviews.py" },
     { "source": "/(.*)", "destination": "/" }
   ]
 } 
