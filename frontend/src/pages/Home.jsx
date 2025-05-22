@@ -1,7 +1,12 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const Home = () => {
+  const [videosLoaded, setVideosLoaded] = useState(0);
+  const [allVideosLoaded, setAllVideosLoaded] = useState(false);
+  const [showPlaceholder, setShowPlaceholder] = useState(true);
+  const videoRefs = useRef([]);
+  
   // List of all available videos
   const allVideos = [
     '/videos/haircut-video1.mp4',
@@ -16,8 +21,50 @@ const Home = () => {
   // For seamless looping, we duplicate the first few videos at the end
   const displayVideos = [...allVideos, ...allVideos.slice(0, 3)];
   
-  // Animation duration (in seconds) - adjust to control scroll speed
-  const animationDuration = 40;
+  // Animation duration (in seconds) - reduced for faster scrolling
+  const animationDuration = 25; // Reduced from 40
+  
+  useEffect(() => {
+    // Preload videos
+    const preloadVideos = () => {
+      displayVideos.forEach((src, index) => {
+        const video = document.createElement('video');
+        video.src = src;
+        video.preload = 'auto';
+        video.muted = true;
+        video.onloadeddata = () => {
+          setVideosLoaded(prev => prev + 1);
+        };
+        
+        // Add to DOM but hidden to force preloading
+        video.style.display = 'none';
+        document.body.appendChild(video);
+        
+        // Clean up
+        return () => {
+          document.body.removeChild(video);
+        };
+      });
+    };
+    
+    preloadVideos();
+    
+    // Show videos when at least 3 are loaded
+    const timer = setTimeout(() => {
+      setShowPlaceholder(false);
+    }, 1000); // Wait maximum 1 second before showing videos anyway
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  useEffect(() => {
+    if (videosLoaded >= 3) {
+      setShowPlaceholder(false);
+    }
+    if (videosLoaded === displayVideos.length) {
+      setAllVideosLoaded(true);
+    }
+  }, [videosLoaded]);
   
   // Animation keyframes are created in a style tag in the component
   const keyframesStyle = `
@@ -36,6 +83,15 @@ const Home = () => {
       0% { box-shadow: 0 0 0 0 rgba(106, 44, 176, 0.4); }
       70% { box-shadow: 0 0 0 15px rgba(106, 44, 176, 0); }
       100% { box-shadow: 0 0 0 0 rgba(106, 44, 176, 0); }
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .video-element {
+      transition: opacity 0.5s ease-in-out;
     }
   `;
   
@@ -56,12 +112,39 @@ const Home = () => {
             zIndex: 0,
             overflow: 'hidden'
           }}>
+            {/* Placeholder while videos load */}
+            {showPlaceholder && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(135deg, #1a0a2a 0%, #100a15 100%)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 10
+              }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  border: '3px solid rgba(255,255,255,0.2)',
+                  borderTop: '3px solid var(--accent)',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+              </div>
+            )}
+            
             {/* Continuously scrolling video container */}
             <div style={{
               display: 'flex',
               width: `calc(100% * ${displayVideos.length} / 3)`, // Width adjusted to show 3 videos at a time
               height: '100%',
-              animation: `scrollVideos ${animationDuration}s linear infinite`
+              animation: `scrollVideos ${animationDuration}s linear infinite`,
+              opacity: showPlaceholder ? 0 : 1,
+              transition: 'opacity 0.5s ease-in-out'
             }}>
               {/* Map all videos into the row */}
               {displayVideos.map((videoSrc, index) => (
@@ -74,6 +157,8 @@ const Home = () => {
                   }}
                 >
                   <video 
+                    ref={el => videoRefs.current[index] = el}
+                    className="video-element"
                     style={{
                       width: '100%',
                       height: '100%',
@@ -83,6 +168,7 @@ const Home = () => {
                     loop 
                     muted 
                     playsInline
+                    preload="auto"
                   >
                     <source src={videoSrc} type="video/mp4" />
                   </video>
