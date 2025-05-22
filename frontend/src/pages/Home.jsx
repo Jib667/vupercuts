@@ -23,8 +23,8 @@ const Home = () => {
   const displayVideos = [...allVideos, ...allVideos.slice(0, 3)];
   
   // Animation duration (in seconds)
-  const desktopDuration = 35; // Slower for desktop
-  const mobileDuration = 50;  // Much slower for mobile
+  const animationDuration = 40;
+  const mobileDuration = 50;  // Slower for mobile
   
   // Check if device is mobile
   useEffect(() => {
@@ -88,7 +88,7 @@ const Home = () => {
   const keyframesStyle = `
     @keyframes scrollVideos {
       0% { transform: translateX(0); }
-      100% { transform: translateX(calc(-${100 * allVideos.length / 3}%)); }
+      100% { transform: translateX(calc(-100% * ${allVideos.length} / ${displayVideos.length})); }
     }
     
     @keyframes scrollVideosMobile {
@@ -188,52 +188,43 @@ const Home = () => {
             {/* Desktop video carousel - shows 3 videos at once */}
             {!isMobile && (
               <div 
-                className="desktop-videos"
                 style={{
                   display: 'flex',
-                  width: '100%',
+                  width: `calc(100% * ${displayVideos.length} / 3)`, // Width adjusted to show 3 videos at a time
                   height: '100%',
-                  overflow: 'hidden',
+                  animation: `scrollVideos ${animationDuration}s linear infinite`,
                   opacity: showPlaceholder ? 0 : 1,
-                  transition: 'opacity 0.5s ease-in-out',
+                  transition: 'opacity 0.5s ease-in-out'
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    width: `${displayVideos.length * (100/3)}%`, // Each video takes up 1/3 of the screen
-                    height: '100%',
-                    animation: `scrollVideos ${desktopDuration}s linear infinite`,
-                    willChange: 'transform',
-                  }}
-                >
-                  {displayVideos.map((videoSrc, index) => (
-                    <div 
-                      key={`desktop-video-${index}`}
-                      style={{ 
-                        width: `${300 / displayVideos.length}%`, // Divide into equal segments
+                {/* Map all videos into the row */}
+                {displayVideos.map((videoSrc, index) => (
+                  <div 
+                    key={`video-${index}`}
+                    style={{ 
+                      flex: `0 0 calc(100% / ${displayVideos.length})`, // Each video takes equal portion
+                      height: '100%',
+                      position: 'relative',
+                    }}
+                  >
+                    <video 
+                      ref={el => videoRefs.current[index] = el}
+                      className="video-element"
+                      style={{
+                        width: '100%',
                         height: '100%',
+                        objectFit: 'cover'
                       }}
+                      autoPlay 
+                      loop 
+                      muted 
+                      playsInline
+                      preload="auto"
                     >
-                      <video 
-                        ref={el => videoRefs.current[index] = el}
-                        className="video-element"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                        autoPlay 
-                        loop 
-                        muted 
-                        playsInline
-                        preload="auto"
-                      >
-                        <source src={videoSrc} type="video/mp4" />
-                      </video>
-                    </div>
-                  ))}
-                </div>
+                      <source src={videoSrc} type="video/mp4" />
+                    </video>
+                  </div>
+                ))}
               </div>
             )}
             
