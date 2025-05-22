@@ -4,162 +4,48 @@ import time
 import base64
 import re
 import os
-import requests
 from datetime import datetime
 
-# Store reviews in a consistent location
-REVIEWS_FILE = "/tmp/vupercuts_reviews.json"
+# Simple in-memory storage for reviews
+REVIEWS = []
+
+# File path for temporary persistence (will reset when Vercel redeploys)
+REVIEWS_FILE = "/tmp/reviews.json"
 
 # Admin credentials
 ADMIN_CREDENTIALS = {"username": "admin", "password": "vupercuts2024"}
 
-# GitHub repo details
-GITHUB_REPO = "Jib667/vupercuts"
-# Use a GitHub Personal Access Token with public_repo scope
-GITHUB_TOKEN = "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"
-REVIEWS_FILE_PATH = "data/reviews.json"
-
-def debug_log(message):
-    try:
-        with open("/tmp/debug.log", "a") as f:
-            f.write(f"{datetime.now().isoformat()} - {message}\n")
-    except Exception as e:
-        # If we can't write to the log file, there's not much we can do
-        pass
-
-def load_reviews_from_github():
-    """Load reviews directly from GitHub repo"""
-    try:
-        debug_log("Attempting to load reviews directly from GitHub")
-        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{REVIEWS_FILE_PATH}"
-        headers = {
-            "Accept": "application/vnd.github.v3+json",
-            "Authorization": f"token {GITHUB_TOKEN}"
-        }
-        
-        debug_log(f"Making GitHub API request to: {url}")
-        response = requests.get(url, headers=headers)
-        debug_log(f"GitHub API response status: {response.status_code}")
-        
-        if response.status_code == 200:
-            content = response.json()
-            debug_log("Successfully got content from GitHub")
-            
-            file_content = base64.b64decode(content["content"]).decode("utf-8")
-            reviews = json.loads(file_content)
-            debug_log(f"Successfully loaded {len(reviews)} reviews from GitHub")
-            
-            # Also save to local cache
-            try:
-                with open(REVIEWS_FILE, "w") as f:
-                    json.dump(reviews, f)
-                debug_log("Saved GitHub reviews to local cache")
-            except Exception as e:
-                debug_log(f"Failed to save GitHub reviews to local cache: {str(e)}")
-                
-            return reviews, content["sha"]
-        else:
-            debug_log(f"Failed to load reviews from GitHub: {response.status_code}")
-            debug_log(f"Response body: {response.text}")
-            return [], None
-    except Exception as e:
-        debug_log(f"Exception loading reviews from GitHub: {str(e)}")
-        return [], None
-
 def load_reviews():
-    """Load reviews from storage with fallback options"""
-    # First try to load from GitHub
-    github_reviews, _ = load_reviews_from_github()
-    if github_reviews:
-        debug_log(f"Using {len(github_reviews)} reviews from GitHub")
-        return github_reviews
+    """Load reviews from storage"""
+    global REVIEWS
     
-    # Fallback to local cache
+    # If we already have reviews in memory, use them
+    if REVIEWS:
+        return REVIEWS
+    
+    # Otherwise try to load from file
     try:
         if os.path.exists(REVIEWS_FILE):
-            # Add timestamp to debug log to track when reviews are loaded
-            debug_log(f"Loading reviews from local cache {REVIEWS_FILE} at {time.time()}")
             with open(REVIEWS_FILE, "r") as f:
-                reviews = json.load(f)
-                debug_log(f"Loaded {len(reviews)} reviews from local cache")
-                return reviews
+                REVIEWS = json.load(f)
+                return REVIEWS
     except Exception as e:
-        debug_log(f"Error loading reviews from local cache: {str(e)}")
+        print(f"Error loading reviews: {str(e)}")
     
-    debug_log("No reviews found in any location, creating empty list")
-    # If we can't load reviews from anywhere, create an empty array 
-    # and save it to local cache to start fresh
-    empty_reviews = []
-    try:
-        with open(REVIEWS_FILE, "w") as f:
-            json.dump(empty_reviews, f)
-        debug_log("Created empty reviews file in local cache")
-    except Exception as e:
-        debug_log(f"Failed to create empty reviews file: {str(e)}")
-    
-    return empty_reviews
-
-def commit_reviews_to_github(reviews, current_sha=None):
-    """Commit updated reviews directly to GitHub repo"""
-    try:
-        debug_log(f"Attempting to commit {len(reviews)} reviews to GitHub")
-        
-        # If we don't have the current SHA, get it first
-        if not current_sha:
-            debug_log("No SHA provided, attempting to fetch current SHA")
-            _, current_sha = load_reviews_from_github()
-            if not current_sha:
-                debug_log("Failed to get current SHA for GitHub commit")
-                return False
-        
-        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{REVIEWS_FILE_PATH}"
-        headers = {
-            "Accept": "application/vnd.github.v3+json",
-            "Authorization": f"token {GITHUB_TOKEN}"
-        }
-        
-        # Prepare the content for the update
-        debug_log("Preparing content for GitHub commit")
-        content = base64.b64encode(json.dumps(reviews, indent=2).encode("utf-8")).decode("utf-8")
-        data = {
-            "message": f"Update reviews ({datetime.now().isoformat()})",
-            "content": content,
-            "sha": current_sha
-        }
-        
-        debug_log(f"Making PUT request to GitHub API: {url}")
-        response = requests.put(url, headers=headers, json=data)
-        debug_log(f"GitHub API PUT response status: {response.status_code}")
-        
-        if response.status_code in [200, 201]:
-            debug_log("Successfully committed reviews to GitHub")
-            return True
-        else:
-            debug_log(f"Failed to commit reviews to GitHub: {response.status_code}")
-            debug_log(f"Response body: {response.text}")
-            return False
-    except Exception as e:
-        debug_log(f"Exception committing reviews to GitHub: {str(e)}")
-        return False
+    # If nothing worked, return empty list
+    return REVIEWS
 
 def save_reviews(reviews):
     """Save reviews to storage"""
+    global REVIEWS
+    REVIEWS = reviews
+    
     try:
-        # Make multiple attempts to save the reviews
-        debug_log(f"Saving {len(reviews)} reviews")
-        
-        # First try to save to GitHub
-        github_success = commit_reviews_to_github(reviews)
-        debug_log(f"GitHub save result: {github_success}")
-        
-        # Then save to the local cache regardless
         with open(REVIEWS_FILE, "w") as f:
             json.dump(reviews, f)
-        debug_log(f"Reviews saved successfully to local cache {REVIEWS_FILE}")
-        
-        return github_success or True  # Return true if either method succeeded
+        return True
     except Exception as e:
-        debug_log(f"Error saving reviews to local cache: {str(e)}")
+        print(f"Error saving reviews: {str(e)}")
         return False
 
 def calculate_average_rating(reviews):
@@ -170,21 +56,10 @@ def calculate_average_rating(reviews):
     return round(total_rating / len(reviews), 1)
 
 class handler(BaseHTTPRequestHandler):
-    def add_anti_cache_headers(self):
-        """Add anti-cache headers to all responses"""
-        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-        self.send_header('Pragma', 'no-cache')
-        self.send_header('Expires', '0')
-        self.send_header('Vary', '*')
-        self.send_header('Access-Control-Allow-Origin', '*')
-    
     def do_GET(self):
         """Handle GET requests - list all reviews"""
-        debug_log(f"GET request to {self.path}")
-        
-        # Force reload reviews every time - directly from GitHub if possible
+        # Load all reviews
         reviews = load_reviews()
-        debug_log(f"GET: Successfully loaded {len(reviews)} reviews")
         
         # Calculate average rating
         avg_rating = calculate_average_rating(reviews)
@@ -192,31 +67,27 @@ class handler(BaseHTTPRequestHandler):
         # Send response
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
-        self.add_anti_cache_headers()
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
         self.end_headers()
         
         response_data = {
             "reviews": reviews,
             "averageRating": avg_rating,
-            "totalReviews": len(reviews),
-            "timestamp": time.time(),
-            "source": "github_api" if len(reviews) > 0 else "empty_fallback"
+            "totalReviews": len(reviews)
         }
         
         self.wfile.write(json.dumps(response_data).encode())
     
     def do_POST(self):
         """Handle POST requests - add a new review"""
-        debug_log(f"POST request to {self.path}")
-        
         # Read request body
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data.decode('utf-8'))
         
-        # Load existing reviews - directly from GitHub
-        github_reviews, current_sha = load_reviews_from_github()
-        reviews = github_reviews if github_reviews else load_reviews()
+        # Load existing reviews
+        reviews = load_reviews()
         
         # Create a new review
         review = {
@@ -227,49 +98,39 @@ class handler(BaseHTTPRequestHandler):
             'createdAt': datetime.now().isoformat()
         }
         
-        debug_log(f"Adding new review with ID: {review['id']}")
-        
         # Add to reviews and save
         reviews.append(review)
-        
-        # Save directly to GitHub if we have SHA
-        save_success = False
-        if current_sha:
-            save_success = commit_reviews_to_github(reviews, current_sha)
-        
-        # If direct GitHub save failed, try normal save
-        if not save_success:
-            save_success = save_reviews(reviews)
-        
-        debug_log(f"Save result for new review: {save_success}")
+        save_reviews(reviews)
         
         # Calculate new average rating
         avg_rating = calculate_average_rating(reviews)
         
-        # Send success response (even if GitHub save failed, we saved locally)
+        # Send success response
         self.send_response(201)
         self.send_header('Content-type', 'application/json')
-        self.add_anti_cache_headers()
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
         response_data = {
             "review": review,
             "averageRating": avg_rating,
-            "totalReviews": len(reviews),
-            "saveSuccess": save_success
+            "totalReviews": len(reviews)
         }
         
         self.wfile.write(json.dumps(response_data).encode())
     
     def do_DELETE(self):
-        debug_log(f"DELETE request to {self.path}")
-        debug_log(f"Headers: {self.headers}")
-        
+        """Handle DELETE requests - delete a review by ID"""
         # Verify admin authentication
         auth_header = self.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Basic '):
-            debug_log("Missing or invalid auth header")
-            self.send_error_response(401, "Unauthorized")
+            self.send_response(401)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            error_data = {"error": "Unauthorized"}
+            self.wfile.write(json.dumps(error_data).encode())
             return
         
         # Extract and check credentials
@@ -277,120 +138,76 @@ class handler(BaseHTTPRequestHandler):
         decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
         username, password = decoded_credentials.split(':')
         
-        debug_log(f"Auth attempt with username: {username}")
-        
         if username != ADMIN_CREDENTIALS["username"] or password != ADMIN_CREDENTIALS["password"]:
-            debug_log("Invalid credentials")
-            self.send_error_response(401, "Invalid credentials")
+            self.send_response(401)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            error_data = {"error": "Invalid credentials"}
+            self.wfile.write(json.dumps(error_data).encode())
             return
         
-        # Extract review ID from path - try multiple patterns
-        review_id = None
-        
-        # Try standard pattern
+        # Extract review ID from path
         match = re.search(r'/api/reviews/([^/]+)', self.path)
-        if match:
-            review_id = match.group(1)
-        else:
-            # Try alternate pattern
-            parts = self.path.strip('/').split('/')
-            if len(parts) >= 3 and parts[-2] == 'reviews':
-                review_id = parts[-1]
+        if not match:
+            self.send_response(400)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            error_data = {"error": "Invalid request path"}
+            self.wfile.write(json.dumps(error_data).encode())
+            return
         
-        # Remove any query parameters if present
-        if review_id and '?' in review_id:
+        review_id = match.group(1)
+        
+        # Clean up review ID (remove any query parameters)
+        if '?' in review_id:
             review_id = review_id.split('?')[0]
         
-        debug_log(f"Extracted review ID: {review_id}")
-        
-        if not review_id:
-            debug_log(f"Could not extract review ID from path: {self.path}")
-            self.send_error_response(400, "Invalid request path")
-            return
-        
-        # Try to get reviews from GitHub first
-        reviews, current_sha = load_reviews_from_github()
-        if not reviews:
-            # Fallback to whatever we can find
-            debug_log("Couldn't load from GitHub, falling back to local")
-            reviews = load_reviews()
-            current_sha = None
-        
-        debug_log(f"Loaded {len(reviews)} reviews for DELETE operation")
-        
-        # Make sure we have a valid list
-        if reviews is None:
-            reviews = []
+        # Load reviews
+        reviews = load_reviews()
         
         # Find and remove the review
-        debug_log(f"Attempting to delete review with ID: {review_id}")
-        if reviews:
-            debug_log(f"Current reviews IDs: {[r.get('id') for r in reviews]}")
-        
         initial_length = len(reviews)
-        new_reviews = [r for r in reviews if str(r.get('id')) != str(review_id)]
+        reviews = [r for r in reviews if str(r.get('id')) != str(review_id)]
         
-        debug_log(f"Reviews after deletion attempt: {len(new_reviews)}")
-        
-        if len(new_reviews) == initial_length:
-            debug_log(f"Review with ID {review_id} not found in current reviews")
-            # Don't fail - just return success anyway
-            # self.send_error_response(404, "Review not found")
-            # return
+        # Check if review was found and deleted
+        if len(reviews) < initial_length:
+            # Save updated reviews
+            save_reviews(reviews)
+            
+            # Calculate new average
+            avg_rating = calculate_average_rating(reviews)
+            
+            # Send success response
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            response_data = {
+                "message": "Review deleted successfully",
+                "averageRating": avg_rating,
+                "totalReviews": len(reviews)
+            }
+            
+            self.wfile.write(json.dumps(response_data).encode())
         else:
-            debug_log(f"Successfully filtered out review ID {review_id}")
-        
-        # Save updated reviews - try GitHub first if we have SHA
-        save_successful = False
-        if current_sha:
-            save_successful = commit_reviews_to_github(new_reviews, current_sha)
-            debug_log(f"GitHub commit result: {save_successful}")
-        
-        # If GitHub save failed or we didn't have SHA, use normal save
-        if not save_successful:
-            save_successful = save_reviews(new_reviews)
-            debug_log(f"Local save result: {save_successful}")
-        
-        # Always continue for now, even if save failed - we'll return the status
-        
-        # Calculate new average
-        avg_rating = calculate_average_rating(new_reviews)
-        
-        # Success response
-        debug_log("Sending success response for deletion")
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.add_anti_cache_headers()
-        self.end_headers()
-        
-        response_data = {
-            "message": "Review deletion processed",
-            "success": save_successful,
-            "averageRating": avg_rating,
-            "totalReviews": len(new_reviews),
-            "timestamp": time.time()
-        }
-        
-        self.wfile.write(json.dumps(response_data).encode())
+            # Review not found
+            self.send_response(404)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            error_data = {"error": "Review not found"}
+            self.wfile.write(json.dumps(error_data).encode())
     
     def do_OPTIONS(self):
         """Handle OPTIONS requests - for CORS"""
         self.send_response(200)
-        self.add_anti_cache_headers()
+        self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-        self.end_headers()
-    
-    def send_error_response(self, status_code, message):
-        debug_log(f"Sending error response: {status_code} - {message}")
-        self.send_response(status_code)
-        self.send_header('Content-type', 'application/json')
-        self.add_anti_cache_headers()
-        self.end_headers()
-        
-        error_data = {
-            "error": message,
-            "timestamp": time.time()
-        }
-        
-        self.wfile.write(json.dumps(error_data).encode()) 
+        self.end_headers() 
