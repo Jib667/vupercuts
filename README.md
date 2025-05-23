@@ -2,21 +2,7 @@
 
 A modern website for Vu Tran's haircut business, allowing customers to book appointments, see availability, and leave reviews.
 
-## Features
-
-- Responsive design for mobile and desktop
-- Online appointment booking system
-- Payment method selection (Venmo, Cash App, Zelle)
-- Customer review system
-- Modern and clean UI
-
-## Tech Stack
-
-- **Frontend**: React with JavaScript
-- **Backend**: Serverless API endpoints (Python)
-- **Deployment**: Vercel
-
-## Development Setup
+## Local Development Setup
 
 ### Prerequisites
 
@@ -32,64 +18,47 @@ A modern website for Vu Tran's haircut business, allowing customers to book appo
    cd vupercuts
    ```
 
-2. Set up the frontend:
+2. Starting the Frontend:
    ```
    cd frontend
    npm install
    npm run dev
    ```
+   The frontend will be accessible at http://localhost:3000
 
-3. Local API testing:
+3. Starting the Backend:
    ```
-   # From the root directory
+   cd backend
    python -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   pip install -r api/requirements.txt
+   pip install -r requirements.txt
+   python app.py
    ```
+   The backend API will be accessible at http://localhost:5000
 
-### Admin Access
+## Vercel Deployment Settings
 
-The website includes basic admin functionality for managing reviews. To access this functionality:
+When deploying to Vercel, configure the following settings:
 
-1. Navigate to the Reviews page
-2. When logged in as admin, you can delete reviews
-3. Admin credentials:
-   - Username: `admin`
-   - Password: `vupercuts2024`
+### Environment Variables
 
-### Deleting Reviews
+Make sure to set these environment variables in your Vercel project settings:
 
-As an admin, you can delete reviews directly from the reviews page by clicking on the delete button associated with each review. The system will prompt for confirmation before deleting.
+- `FLASK_APP`: app.py
+- `FLASK_ENV`: development
+- `GOOGLE_API_KEY`: your google maps API key
+- `GOOGLE_PLACE_ID`: ChIJrQaIzQZNtokRES2hzHsMEhI
 
-## Deployment
+### Build Configuration
 
-This project is configured to deploy on Vercel. The `vercel.json` file contains the necessary configuration.
+- **Build Command**: `npm run build`
+- **Output Directory**: `build`
+- **Development Command**: `npm run dev`
 
-To deploy:
-1. Install Vercel CLI: `npm i -g vercel`
-2. Run `vercel` from the project root
-3. Follow the prompts to deploy
+### API Configuration
 
-## Project Structure
+The serverless API endpoints are configured in the `vercel.json` file. Make sure this file is included in your deployment.
 
-```
-vupercuts/
-├── frontend/              # React frontend
-│   ├── src/               # Source code
-│   │   ├── components/    # Reusable UI components
-│   │   ├── pages/         # Page components
-│   │   └── App.jsx        # Main application component
-│   ├── public/            # Static assets
-│   │   └── admin.js       # Admin functionality
-│   └── package.json       # Frontend dependencies
-├── api/                   # Serverless API endpoints
-│   ├── reviews.py         # Handles review CRUD operations
-│   ├── adminVerify.py     # Admin verification
-│   └── requirements.txt   # API dependencies
-├── vercel.json            # Vercel deployment configuration
-└── README.md              # This file
-```
+### Custom Domain Setup (Optional)
 
-## License
-
-MIT
+You can configure a custom domain in the Vercel dashboard under Domain Settings. 
