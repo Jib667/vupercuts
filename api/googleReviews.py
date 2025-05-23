@@ -2,33 +2,39 @@ from http.server import BaseHTTPRequestHandler
 import json
 import os
 import requests
-from dotenv import load_dotenv
-import urllib.parse
-
-# Load environment variables
-load_dotenv()
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # Enable CORS
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-        
-        # Get Google API key and place ID
-        google_api_key = os.environ.get('GOOGLE_API_KEY', '')
-        place_id = os.environ.get('GOOGLE_PLACE_ID', '')
-        
-        # Check if API key and place ID are available
-        if not google_api_key or not place_id:
-            error_response = {"error": "Google API configuration missing"}
-            self.wfile.write(json.dumps(error_response).encode())
-            return
-        
         try:
+            # Enable CORS
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Methods', 'GET')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.end_headers()
+            
+            # Get Google API key and place ID directly from environment
+            google_api_key = os.environ.get('GOOGLE_API_KEY', '')
+            place_id = os.environ.get('GOOGLE_PLACE_ID', '')
+            
+            # Debug info
+            debug_info = {
+                "api_key_exists": bool(google_api_key),
+                "place_id_exists": bool(place_id),
+                "api_key_length": len(google_api_key) if google_api_key else 0,
+                "api_key_first_chars": google_api_key[:4] + "..." if google_api_key and len(google_api_key) > 4 else ""
+            }
+            
+            # Check if API key and place ID are available
+            if not google_api_key or not place_id:
+                error_response = {
+                    "error": "Google API configuration missing",
+                    "debug": debug_info
+                }
+                self.wfile.write(json.dumps(error_response).encode())
+                return
+            
             # Construct the URL for the Places API
             url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=reviews,rating,user_ratings_total,url&key={google_api_key}"
             
@@ -37,7 +43,11 @@ class handler(BaseHTTPRequestHandler):
             data = response.json()
             
             if data.get('status') != 'OK':
-                error_response = {"error": f"Google Places API error: {data.get('status')}"}
+                error_response = {
+                    "error": f"Google Places API error: {data.get('status')}",
+                    "message": data.get('error_message', 'No error message provided'),
+                    "debug": debug_info
+                }
                 self.wfile.write(json.dumps(error_response).encode())
                 return
             
@@ -72,5 +82,16 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(response_data).encode())
             
         except Exception as e:
-            error_response = {"error": f"Failed to fetch Google reviews: {str(e)}"}
+            # Send error response
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            error_message = str(e)
+            error_response = {
+                "error": "Failed to fetch Google reviews",
+                "message": error_message,
+                "type": type(e).__name__
+            }
             self.wfile.write(json.dumps(error_response).encode()) 
