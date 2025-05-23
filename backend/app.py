@@ -4,6 +4,11 @@ import json
 import os
 from datetime import datetime, timedelta
 import functools
+import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -18,6 +23,10 @@ else:
 APPOINTMENTS_FILE = os.path.join(DATA_DIR, 'appointments.json')
 REVIEWS_FILE = os.path.join(DATA_DIR, 'reviews.json')
 ADMIN_CREDENTIALS_FILE = os.path.join(DATA_DIR, 'admin.json')
+
+# Google Places API
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
+PLACE_ID = os.environ.get('GOOGLE_PLACE_ID', '')
 
 # Ensure data directory exists
 if not os.path.exists(DATA_DIR):
@@ -132,6 +141,61 @@ def get_available_slots(date_str):
     
     return available_slots
 
+def fetch_google_reviews():
+    """Fetch reviews from Google Places API"""
+    print(f"Google API Key: {GOOGLE_API_KEY[:5]}...{GOOGLE_API_KEY[-4:] if len(GOOGLE_API_KEY) > 10 else ''}")
+    print(f"Place ID: {PLACE_ID}")
+    
+    if not GOOGLE_API_KEY or not PLACE_ID:
+        print("Google API configuration missing")
+        return {"error": "Google API configuration missing"}, 500
+    
+    url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={PLACE_ID}&fields=reviews,rating,user_ratings_total,url&key={GOOGLE_API_KEY}"
+    print(f"Fetching reviews from URL: {url}")
+    
+    try:
+        response = requests.get(url)
+        data = response.json()
+        
+        print(f"Google Places API response status: {data.get('status')}")
+        
+        if data.get('status') != 'OK':
+            print(f"Google Places API error: {data.get('status')}")
+            print(f"Error message: {data.get('error_message', 'No error message provided')}")
+            return {"error": f"Google Places API error: {data.get('status')}"}, 500
+            
+        result = data.get('result', {})
+        reviews = result.get('reviews', [])
+        place_url = result.get('url', f"https://search.google.com/local/reviews?placeid={PLACE_ID}")
+        print(f"Fetched {len(reviews)} reviews")
+        
+        # Format reviews to match our expected structure
+        formatted_reviews = []
+        for review in reviews:
+            formatted_review = {
+                'id': review.get('time', ''),  # Use the timestamp as ID
+                'name': review.get('author_name', ''),
+                'text': review.get('text', ''),
+                'rating': review.get('rating', 0),
+                'createdAt': review.get('time', ''),  # Unix timestamp
+                'profile_photo_url': review.get('profile_photo_url', ''),
+                'relative_time_description': review.get('relative_time_description', ''),
+                'isGoogleReview': True,
+                'place_url': place_url
+            }
+            formatted_reviews.append(formatted_review)
+            
+        return {
+            "reviews": formatted_reviews,
+            "averageRating": result.get('rating', 0),
+            "totalReviews": result.get('user_ratings_total', 0),
+            "placeUrl": place_url
+        }, 200
+        
+    except Exception as e:
+        print(f"Error fetching Google reviews: {str(e)}")
+        return {"error": f"Failed to fetch Google reviews: {str(e)}"}, 500
+
 @app.route('/')
 def home():
     return jsonify({"message": "Vupercuts API is running!"})
@@ -180,6 +244,11 @@ def appointments():
         save_appointments(appointments)
         
         return jsonify(appointment), 201
+
+@app.route('/api/google-reviews', methods=['GET'])
+def google_reviews():
+    result, status_code = fetch_google_reviews()
+    return jsonify(result), status_code
 
 @app.route('/api/reviews', methods=['GET', 'POST'])
 def reviews():

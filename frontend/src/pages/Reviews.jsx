@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAdmin } from '../contexts/AdminContext'
-import ReviewsService from '../services/ReviewsService'
+import GooglePlacesService from '../services/GooglePlacesService'
 
 // API URL - will be automatically set based on environment
 const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api';
@@ -11,19 +11,9 @@ const Reviews = () => {
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [newReview, setNewReview] = useState({
-    name: '',
-    text: '',
-    rating: 5
-  })
-  const [submitting, setSubmitting] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
   const [isMobile, setIsMobile] = useState(false)
-  const [activeTab, setActiveTab] = useState('reviews') // 'reviews' or 'form'
   
   // Admin state
-  const [adminUsername, setAdminUsername] = useState('')
-  const [adminPassword, setAdminPassword] = useState('')
   const [showAdminLogin, setShowAdminLogin] = useState(false)
   const [adminLoginError, setAdminLoginError] = useState('')
   const [adminLoggingIn, setAdminLoggingIn] = useState(false)
@@ -31,6 +21,9 @@ const Reviews = () => {
   // Statistics
   const [averageRating, setAverageRating] = useState(0)
   const [totalReviews, setTotalReviews] = useState(0)
+
+  // Add a new state variable for the place URL where users can see all reviews
+  const [placeUrl, setPlaceUrl] = useState('');
 
   // Check if device is mobile
   useEffect(() => {
@@ -49,7 +42,7 @@ const Reviews = () => {
   }, []);
   
   useEffect(() => {
-    fetchReviews()
+    fetchGoogleReviews()
   }, [])
 
   // Set default active tab based on device
@@ -57,79 +50,24 @@ const Reviews = () => {
     setActiveTab(isMobile ? 'reviews' : 'both');
   }, [isMobile]);
 
-  const fetchReviews = async () => {
+  const fetchGoogleReviews = async () => {
     setLoading(true)
     try {
-      const data = await ReviewsService.getAllReviews()
+      const data = await GooglePlacesService.getGoogleReviews()
       
       setReviews(data.reviews)
       setAverageRating(data.averageRating)
       setTotalReviews(data.totalReviews)
+      setPlaceUrl(data.placeUrl || '') // Store the place URL for "See more reviews" button
       setLoading(false)
     } catch (err) {
-      console.error('Error fetching reviews:', err)
+      console.error('Error fetching Google reviews:', err)
       setError('Failed to load reviews. Please try again later.')
       setLoading(false)
     }
   }
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setNewReview({
-      ...newReview,
-      [name]: value
-    })
-  }
-
-  const handleRatingChange = (e) => {
-    setNewReview({
-      ...newReview,
-      rating: parseInt(e.target.value)
-    })
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
-    setSuccessMessage('')
-    setError('')
-
-    try {
-      const data = await ReviewsService.submitReview(newReview)
-      
-      setReviews([data.review, ...reviews])
-      setAverageRating(data.averageRating)
-      setTotalReviews(data.totalReviews)
-      
-      setSuccessMessage('Thank you for your review!')
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage('')
-      }, 3000)
-      
-      setNewReview({
-        name: '',
-        text: '',
-        rating: 5
-      })
-      
-      // Switch to reviews tab on mobile after submitting
-      if (isMobile) {
-        setActiveTab('reviews');
-      }
-    } catch (err) {
-      console.error('Error submitting review:', err)
-      setError('Failed to submit review. Please try again.')
-      
-      // Clear error message after 3 seconds
-      setTimeout(() => {
-        setError('')
-      }, 3000)
-    } finally {
-      setSubmitting(false)
-    }
-  }
+  const [activeTab, setActiveTab] = useState('reviews')
   
   const handleAdminLogin = async (e) => {
     e.preventDefault()
@@ -144,40 +82,6 @@ const Reviews = () => {
       setAdminLoginError('Invalid credentials. Please try again.')
     } finally {
       setAdminLoggingIn(false)
-    }
-  }
-  
-  const handleDeleteReview = async (reviewId) => {
-    if (!window.confirm('Are you sure you want to delete this review?')) {
-      return
-    }
-    
-    try {
-      console.log('Getting auth headers')
-      const authHeaders = getAuthHeaders()
-      console.log('Attempting to delete review with ID:', reviewId)
-      
-      const response = await ReviewsService.deleteReview(reviewId, authHeaders)
-      console.log('Delete successful, response:', response)
-      
-      // Update local state
-      setReviews(reviews.filter(review => review.id !== reviewId))
-      setAverageRating(response.averageRating)
-      setTotalReviews(response.totalReviews)
-      
-    } catch (err) {
-      console.error('Error deleting review:', err)
-      console.error('Error details:', {
-        status: err.response?.status,
-        data: err.response?.data,
-        headers: err.response?.headers
-      })
-      
-      if (err.response && err.response.status === 401) {
-        alert('Admin session expired. Please log in again.')
-      } else {
-        alert('Failed to delete review. Please try again.')
-      }
     }
   }
 
@@ -384,88 +288,6 @@ const Reviews = () => {
         marginTop: '60px', // Add margin to push content below navbar
         position: 'relative',
       }}>
-        {/* Accent line at top - removed */}
-        {/* <div style={{
-          width: '100px',
-          height: '4px',
-          background: 'var(--accent)',
-          marginBottom: '2rem',
-          borderRadius: '2px',
-        }}></div> */}
-        
-        {/* Admin Controls - REMOVED */}
-        {/* <div style={{ 
-          display: 'flex', 
-          justifyContent: 'flex-end',
-          marginBottom: '2rem'
-        }}>
-          {isAdmin ? (
-            <div style={{ 
-              display: 'flex', 
-              gap: '1rem', 
-              alignItems: 'center',
-              background: 'rgba(106, 44, 176, 0.1)',
-              padding: '0.5rem 1rem',
-              borderRadius: '20px',
-            }}>
-              <span style={{ 
-                fontSize: '0.9rem', 
-                color: 'var(--accent)',
-                fontWeight: '500'
-              }}>
-                Admin Mode
-              </span>
-              <button 
-                onClick={adminLogout}
-                className="btn"
-                style={{ 
-                  padding: '0.5rem 1rem',
-                  fontSize: '0.9rem',
-                  background: 'var(--accent)',
-                  boxShadow: '0 4px 8px rgba(106, 44, 176, 0.2)',
-                }}
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setShowAdminLogin(true)}
-              style={{ 
-                background: 'transparent',
-                border: 'none',
-                color: '#666',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                padding: '0.5rem',
-                textDecoration: 'underline',
-                transition: 'color 0.3s ease',
-              }}
-              onMouseEnter={(e) => e.target.style.color = 'var(--accent)'}
-              onMouseLeave={(e) => e.target.style.color = '#666'}
-            >
-              Admin
-            </button>
-          )}
-        </div> */}
-      
-        {successMessage && (
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(106, 44, 176, 0.1) 0%, rgba(106, 44, 176, 0.2) 100%)',
-            color: 'var(--accent)',
-            padding: '1.2rem',
-            borderRadius: 'var(--border-radius)',
-            marginBottom: '2rem',
-            textAlign: 'center',
-            border: '1px solid rgba(106, 44, 176, 0.2)',
-            boxShadow: '0 4px 12px rgba(106, 44, 176, 0.1)',
-            fontWeight: '500',
-          }}>
-            <i className="fas fa-check-circle" style={{ marginRight: '8px' }}></i>
-            {successMessage}
-          </div>
-        )}
-        
         {error && (
           <div style={{
             background: '#f8d7da',
@@ -507,24 +329,6 @@ const Reviews = () => {
               <i className="fas fa-comment-alt" style={{ marginRight: '8px' }}></i>
               Reviews ({totalReviews})
             </button>
-            <button
-              onClick={() => setActiveTab('form')}
-              style={{
-                flex: 1,
-                padding: '0.8rem',
-                background: activeTab === 'form' ? 'var(--accent)' : 'transparent',
-                color: activeTab === 'form' ? 'white' : 'var(--primary)',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-              }}
-            >
-              <i className="fas fa-pen" style={{ marginRight: '8px' }}></i>
-              Write Review
-            </button>
           </div>
         )}
         
@@ -532,197 +336,12 @@ const Reviews = () => {
           className="reviews-container"
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 2fr',
+            gridTemplateColumns: '1fr',
             gap: '4rem',
             maxWidth: '1200px',
             margin: '0 auto',
           }}
         >
-          {/* Leave a Review Form */}
-          <div 
-            className={`reviews-form ${isMobile && activeTab !== 'form' ? 'mobile-hidden' : ''}`}
-            style={{
-              background: 'white',
-              borderRadius: '16px',
-              boxShadow: 'var(--box-shadow)',
-              padding: '2.5rem',
-              height: 'fit-content',
-              position: 'sticky',
-              top: '100px',
-              border: '1px solid rgba(106, 44, 176, 0.1)',
-              backgroundImage: 'radial-gradient(circle at top right, rgba(106, 44, 176, 0.05), transparent 400px)',
-            }}
-          >
-            <h2 style={{ 
-              marginBottom: '2rem', 
-              color: 'var(--primary)', 
-              fontSize: '1.8rem',
-              position: 'relative',
-              paddingBottom: '10px',
-            }}>
-              Leave a Review
-              <span style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                width: '50px',
-                height: '3px',
-                background: 'var(--accent)',
-                borderRadius: '3px',
-              }}></span>
-            </h2>
-            
-            {/* Mobile - Back button */}
-            {isMobile && (
-              <button
-                onClick={() => setActiveTab('reviews')}
-                style={{
-                  position: 'absolute',
-                  top: '1.5rem',
-                  right: '1.5rem',
-                  background: 'rgba(106, 44, 176, 0.1)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--accent)',
-                  cursor: 'pointer',
-                }}
-              >
-                <i className="fas fa-arrow-left"></i>
-              </button>
-            )}
-            
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="name" className="form-label">Your Name</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={newReview.name}
-                  onChange={handleInputChange}
-                  className="form-control"
-                  placeholder="John Doe"
-                  required
-                  style={{
-                    fontFamily: 'Poppins, sans-serif',
-                    fontSize: '1rem',
-                    border: '1px solid rgba(106, 44, 176, 0.2)',
-                    transition: 'border-color 0.3s, box-shadow 0.3s',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--accent)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(106, 44, 176, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'rgba(106, 44, 176, 0.2)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label className="form-label">Rating</label>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    name="rating"
-                    value={newReview.rating}
-                    onChange={handleRatingChange}
-                    style={{ 
-                      flex: 1, 
-                      marginRight: '1rem',
-                      fontFamily: 'Poppins, sans-serif',
-                      accentColor: 'var(--accent)',
-                      height: '6px',
-                    }}
-                  />
-                  <div style={{ 
-                    display: 'flex',
-                    background: 'rgba(106, 44, 176, 0.1)',
-                    padding: '5px 10px',
-                    borderRadius: '12px',
-                  }}>
-                    {renderStars(newReview.rating)}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="text" className="form-label">Your Review</label>
-                <textarea
-                  id="text"
-                  name="text"
-                  value={newReview.text}
-                  onChange={handleInputChange}
-                  className="form-control"
-                  rows={5}
-                  placeholder="Share your experience with us..."
-                  required
-                  style={{
-                    fontFamily: 'Poppins, sans-serif',
-                    fontSize: '1rem',
-                    lineHeight: '1.6',
-                    border: '1px solid rgba(106, 44, 176, 0.2)',
-                    transition: 'border-color 0.3s, box-shadow 0.3s',
-                    resize: 'none',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--accent)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(106, 44, 176, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'rgba(106, 44, 176, 0.2)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                ></textarea>
-              </div>
-              
-              <button 
-                type="submit" 
-                className="btn btn-accent btn-block"
-                disabled={submitting}
-                style={{ 
-                  width: '100%', 
-                  marginTop: '1.5rem',
-                  fontFamily: 'Poppins, sans-serif',
-                  fontWeight: '500',
-                  background: 'var(--accent)',
-                  boxShadow: '0 4px 12px rgba(106, 44, 176, 0.2)',
-                  transition: 'transform 0.3s, box-shadow 0.3s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!submitting) {
-                    e.target.style.transform = 'translateY(-2px)';
-                    e.target.style.boxShadow = '0 6px 15px rgba(106, 44, 176, 0.3)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(106, 44, 176, 0.2)';
-                }}
-              >
-                {submitting ? (
-                  <span>
-                    <i className="fas fa-spinner fa-spin" style={{ marginRight: '8px' }}></i>
-                    Submitting...
-                  </span>
-                ) : (
-                  <span>
-                    <i className="fas fa-paper-plane" style={{ marginRight: '8px' }}></i>
-                    Submit Review
-                  </span>
-                )}
-              </button>
-            </form>
-          </div>
-          
           {/* Reviews List */}
           <div 
             className={`reviews-list-container ${isMobile && activeTab !== 'reviews' ? 'mobile-hidden' : ''}`}
@@ -761,30 +380,6 @@ const Reviews = () => {
                   borderRadius: '3px',
                 }}></span>
               </h2>
-              
-              {/* Mobile - Write Review button */}
-              {/* {isMobile && (
-                <button
-                  onClick={() => setActiveTab('form')}
-                  style={{
-                    position: 'absolute',
-                    top: '0',
-                    right: '0',
-                    background: 'var(--accent)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '42px',
-                    height: '42px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 10px rgba(106, 44, 176, 0.2)',
-                  }}
-                >
-                  <i className="fas fa-pen"></i>
-                </button>
-              )} */}
               
               {!loading && totalReviews > 0 && (
                 <div style={{ 
@@ -873,7 +468,7 @@ const Reviews = () => {
                 }}>
                   <i className="fas fa-comment-dots"></i>
                 </div>
-                <p>No reviews yet. Be the first to leave a review!</p>
+                <p>No reviews yet.</p>
               </div>
             ) : (
               <div 
@@ -908,58 +503,43 @@ const Reviews = () => {
                     e.currentTarget.style.boxShadow = 'var(--box-shadow)';
                   }}
                   >
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleDeleteReview(review.id)}
-                        style={{
-                          position: 'absolute',
-                          top: '1rem',
-                          right: '1rem',
-                          background: 'rgba(220, 53, 69, 0.1)',
-                          border: 'none',
-                          color: '#dc3545',
-                          cursor: 'pointer',
-                          fontSize: '1rem',
-                          borderRadius: '50%',
-                          width: '32px',
-                          height: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'background 0.3s, transform 0.3s',
-                        }}
-                        title="Delete review"
-                        onMouseEnter={(e) => {
-                          e.target.style.background = 'rgba(220, 53, 69, 0.2)';
-                          e.target.style.transform = 'scale(1.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = 'rgba(220, 53, 69, 0.1)';
-                          e.target.style.transform = 'scale(1)';
-                        }}
-                      >
-                        <i className="fas fa-trash-alt"></i>
-                      </button>
-                    )}
                     <div style={{ 
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       marginBottom: '1rem',
                       alignItems: 'center',
                     }}>
-                      <h3 style={{ 
-                        margin: 0, 
-                        fontSize: '1.2rem',
-                        color: 'var(--primary)',
-                        fontWeight: '600',
-                      }}>
-                        <i className="fas fa-user-circle" style={{ 
-                          marginRight: '8px',
-                          color: 'var(--accent)',
-                          opacity: 0.7,
-                        }}></i>
-                        {review.name}
-                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        {review.profile_photo_url ? (
+                          <img 
+                            src={review.profile_photo_url} 
+                            alt={`${review.name}'s profile`} 
+                            style={{ 
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              marginRight: '12px',
+                              border: '2px solid rgba(106, 44, 176, 0.1)'
+                            }}
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <i className="fas fa-user-circle" style={{ 
+                            marginRight: '8px',
+                            color: 'var(--accent)',
+                            opacity: 0.7,
+                            fontSize: '2rem'
+                          }}></i>
+                        )}
+                        <h3 style={{ 
+                          margin: 0, 
+                          fontSize: '1.2rem',
+                          color: 'var(--primary)',
+                          fontWeight: '600',
+                        }}>
+                          {review.name}
+                        </h3>
+                      </div>
                       <div style={{ 
                         display: 'flex',
                         background: 'rgba(106, 44, 176, 0.08)',
@@ -987,20 +567,81 @@ const Reviews = () => {
                       alignItems: 'center',
                     }}>
                       <i className="far fa-calendar-alt" style={{ marginRight: '5px' }}></i>
-                      {new Date(review.createdAt).toLocaleDateString()}
+                      {review.relative_time_description || new Date(review.createdAt * 1000).toLocaleDateString()}
                     </div>
+                    {/* Google logo indicator */}
+                    {review.isGoogleReview && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '12px',
+                        right: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontSize: '0.8rem',
+                        color: '#666'
+                      }}>
+                        <img 
+                          src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" 
+                          alt="Google" 
+                          style={{
+                            height: '16px',
+                            marginLeft: '4px',
+                            opacity: 0.7
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
+
+                {/* See More Reviews Button */}
+                {reviews.length > 0 && totalReviews > reviews.length && placeUrl && (
+                  <div style={{ 
+                    display: 'flex',
+                    justifyContent: 'center',
+                    marginTop: '2rem',
+                    marginBottom: '1rem'
+                  }}>
+                    <a 
+                      href={placeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0.8rem 1.5rem',
+                        background: 'var(--accent)',
+                        color: 'white',
+                        borderRadius: '50px',
+                        fontWeight: '600',
+                        textDecoration: 'none',
+                        boxShadow: '0 4px 12px rgba(106, 44, 176, 0.2)',
+                        transition: 'transform 0.3s, box-shadow 0.3s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 15px rgba(106, 44, 176, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(106, 44, 176, 0.2)';
+                      }}
+                    >
+                      <i className="fas fa-external-link-alt" style={{ marginRight: '10px' }}></i>
+                      See All {totalReviews} Reviews on Google
+                    </a>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
       
-      {/* Admin Login Modal */}
       <AdminLoginModal />
     </div>
-  )
-}
+  );
+};
 
 export default Reviews 
