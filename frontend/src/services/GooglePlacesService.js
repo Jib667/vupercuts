@@ -8,12 +8,20 @@ class GooglePlacesService {
     try {
       const endpoint = `${API_URL}/google-reviews`;
       console.log('Fetching Google reviews from:', endpoint);
+      
+      // Add logging for debugging
+      console.log('Environment:', import.meta.env.PROD ? 'Production' : 'Development');
+      
       const response = await axios.get(endpoint);
       console.log('Google reviews response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error fetching Google reviews:', error);
-      console.error('Error response:', error.response);
+      // Improved error logging
+      console.error('Error fetching Google reviews:', error.message || error);
+      if (error.response) {
+        console.error('Error status:', error.response.status);
+        console.error('Error data:', error.response.data);
+      }
       throw error;
     }
   }

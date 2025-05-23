@@ -2,9 +2,15 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/googleReviews.py": {
+      "includeFiles": "requirements.txt",
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
-    { "source": "/api/google-reviews", "destination": "/api/googleReviews.py" },
-    { "source": "/api/google-reviews/more", "destination": "/api/googleReviewsMore.py" },
+    { "source": "/api/google-reviews", "destination": "/api/googleReviews" },
     { "source": "/api/test", "destination": "/api/test.py" },
     { "source": "/api/reviews/:id", "destination": "/api/reviews.py" },
     { "source": "/api/reviews", "destination": "/api/reviews.py" },
