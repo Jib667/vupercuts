@@ -9,22 +9,18 @@ logger = logging.getLogger("index")
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        logger.info("API root endpoint called")
-        
-        # Get environment info
-        env_info = {
-            "vercel_env": os.environ.get("VERCEL_ENV", "not set"),
-            "path": self.path,
-            "headers": dict(self.headers),
-            "cwd": os.getcwd(),
-            "files_in_cwd": os.listdir() if os.path.exists(os.getcwd()) else [],
-            "tmp_dir_exists": os.path.exists("/tmp"),
-            "tmp_dir_writable": os.access("/tmp", os.W_OK) if os.path.exists("/tmp") else False,
-        }
-        
         self.send_response(200)
-        self.send_header('Content-type', 'application/json')
+        self.send_header('Content-Type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
         
-        self.wfile.write(json.dumps(env_info).encode()) 
+        response = {
+            "status": "success",
+            "message": "API index route is working",
+            "info": "Try accessing /api/google-reviews for reviews data",
+            "path": self.path
+        }
+        
+        self.wfile.write(json.dumps(response).encode()) 

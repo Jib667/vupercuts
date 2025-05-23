@@ -6,11 +6,12 @@
     "api/googleReviews.py": {
       "includeFiles": "requirements.txt",
       "memory": 1024,
-      "maxDuration": 10
+      "maxDuration": 10,
+      "runtime": "python3.9"
     }
   },
   "rewrites": [
-    { "source": "/api/google-reviews", "destination": "/api/googleReviews" },
+    { "source": "/api/google-reviews", "destination": "/api/googleReviews.py" },
     { "source": "/api/test", "destination": "/api/test.py" },
     { "source": "/api/reviews/:id", "destination": "/api/reviews.py" },
     { "source": "/api/reviews", "destination": "/api/reviews.py" },
