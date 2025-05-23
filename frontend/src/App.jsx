@@ -4,6 +4,7 @@ import BookAppointment from './pages/BookAppointment'
 import Reviews from './pages/Reviews'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import ScrollToTop from './components/ScrollToTop'
 import { AdminProvider } from './contexts/AdminContext'
 import './App.css'
 
@@ -11,6 +12,7 @@ function App() {
   return (
     <AdminProvider>
       <div className="app">
+        <ScrollToTop />
         <Navbar />
         <main className="content" style={{ 
           paddingTop: '0',
