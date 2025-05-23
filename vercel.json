@@ -6,8 +6,7 @@
     "api/googleReviews.py": {
       "includeFiles": "requirements.txt",
       "memory": 1024,
-      "maxDuration": 10,
-      "runtime": "python3.9"
+      "maxDuration": 10
     }
   },
   "rewrites": [
