@@ -2,6 +2,15 @@
 
 A modern website for Vu Tran's haircut business, allowing customers to book appointments, see availability, and leave reviews.
 
+![Screenshot 2025-06-28 at 3 17 14 PM](https://github.com/user-attachments/assets/dc6059de-f626-430c-b7df-d51906ce090b)
+Landing Page
+
+![Screenshot 2025-06-28 at 3 17 39 PM](https://github.com/user-attachments/assets/db9d71f8-ac73-4570-a0f2-0d3623a5180b)
+Socials Scroll
+
+![Screenshot 2025-06-28 at 3 18 03 PM](https://github.com/user-attachments/assets/fbd68642-8b61-44f8-b430-60ca8ba8d983)
+Appointment Setup
+
 ## Local Development Setup
 
 ### Prerequisites
